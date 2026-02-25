@@ -10,6 +10,7 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 import java.time.Duration;
 import java.util.*;
 
+
 public class Main {
 
     public static void main(String[] args) throws Exception {
