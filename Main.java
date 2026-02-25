@@ -2,6 +2,8 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.util.*;
 
@@ -9,14 +11,25 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        WebDriver driver = new ChromeDriver();
+        // ======================
+        // HEADLESS CHROME (GitHub Actions)
+        // ======================
+        WebDriverManager.chromedriver().setup();
+
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless=new");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--window-size=1920,1080");
+
+        WebDriver driver = new ChromeDriver(options);
         Random random = new Random();
 
         // ======================
         // LOGIN
         // ======================
         driver.get("https://elem.cards/login/");
-        driver.manage().window().maximize();
 
         Thread.sleep(2500);
 
@@ -39,7 +52,7 @@ public class Main {
             System.out.println("🔎 Searching attacks...");
 
             // ======================
-            // ATTACK 0 1 2 (Random Order)
+            // ATTACK 0 / 1 / 2
             // ======================
             List<WebElement> attacks = new ArrayList<>();
 
@@ -57,8 +70,6 @@ public class Main {
                         System.out.println("⚔ Attack clicked");
 
                         actionPerformed = true;
-
-                        // Human delay (1–1.3 sec)
                         Thread.sleep(1000 + random.nextInt(300));
 
                     } catch (Exception ignored) {}
@@ -81,7 +92,7 @@ public class Main {
             }
 
             // ======================
-            // GOLD ATTACK (<=20 only)
+            // GOLD ATTACK (<=50)
             // ======================
             List<WebElement> goldAttack =
                     driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
@@ -140,8 +151,7 @@ public class Main {
             if (actionPerformed) {
 
                 System.out.println("🔄 Browser Refresh");
-
-                driver.navigate().refresh();   // ✅ REAL browser refresh
+                driver.navigate().refresh();
                 Thread.sleep(2500);
             }
             else {
@@ -151,7 +161,7 @@ public class Main {
                 Thread.sleep(60000);
 
                 driver.navigate().refresh();
-                System.out.println("🔄 1‑minute refresh");
+                System.out.println("🔄 1-minute refresh");
                 Thread.sleep(3000);
             }
         }
