@@ -3,71 +3,46 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 import io.github.bonigarcia.wdm.WebDriverManager;
 
-import java.time.Duration;
 import java.util.*;
 
 public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        // ======================
-        // HEADLESS BROWSER
-        // ======================
+        // ✅ setup chrome driver automatically
         WebDriverManager.chromedriver().setup();
 
+        // ✅ ONLY ONE ChromeOptions object
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless=new");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--disable-gpu");
-        options.addArguments("--window-size=1920,1080");
 
-        WebDriverManager.chromedriver().setup();
-
-ChromeOptions options = new ChromeOptions();
-options.addArguments("--headless=new");
-options.addArguments("--no-sandbox");
-options.addArguments("--disable-dev-shm-usage");
-options.addArguments("--disable-gpu");
-options.addArguments("--window-size=1920,1080");
-
-WebDriver driver = new ChromeDriver(options);
-
-        WebDriverWait wait =
-                new WebDriverWait(driver, Duration.ofSeconds(20));
-
+        WebDriver driver = new ChromeDriver(options);
         Random random = new Random();
 
-        // ======================
-        // LOGIN
-        // ======================
+        // ================= LOGIN =================
         driver.get("https://elem.cards/login/");
 
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.name("plogin")))
-                .sendKeys("Avatasoo");
+        Thread.sleep(2000);
 
+        driver.findElement(By.name("plogin")).sendKeys("Avatasoo");
         driver.findElement(By.name("ppass")).sendKeys("1193811");
-
         driver.findElement(By.cssSelector("input[type='submit']")).click();
 
-        // wait until game button appears
-        wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("a.urfin")))
-                .click();
+        Thread.sleep(4000);
 
-        System.out.println("✅ Login success");
+        driver.findElement(By.cssSelector("a.urfin")).click();
+        Thread.sleep(3000);
 
-        // ======================
-        // MAIN LOOP
-        // ======================
+        // ================= MAIN LOOP =================
         while (true) {
 
             boolean actionPerformed = false;
 
-            System.out.println("🔎 Searching attacks...");
+            System.out.println("Searching attacks...");
 
             List<WebElement> attacks = new ArrayList<>();
 
@@ -75,14 +50,17 @@ WebDriver driver = new ChromeDriver(options);
             attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack1']")));
             attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack2']")));
 
-            Collections.shuffle(attacks);
+            if (!attacks.isEmpty()) {
 
-            for (WebElement attack : attacks) {
-                try {
-                    attack.click();
-                    actionPerformed = true;
-                    Thread.sleep(1000 + random.nextInt(300));
-                } catch (Exception ignored) {}
+                Collections.shuffle(attacks);
+
+                for (WebElement attack : attacks) {
+                    try {
+                        attack.click();
+                        actionPerformed = true;
+                        Thread.sleep(1000 + random.nextInt(300));
+                    } catch (Exception ignored) {}
+                }
             }
 
             // NORMAL ATTACK
@@ -95,7 +73,7 @@ WebDriver driver = new ChromeDriver(options);
                 Thread.sleep(1500);
             }
 
-            // GOLD ATTACK
+            // GOLD ATTACK <=20
             List<WebElement> goldAttack =
                     driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
 
@@ -111,7 +89,6 @@ WebDriver driver = new ChromeDriver(options);
                     if (cost <= 50) {
 
                         goldAttack.get(0).click();
-
                         Thread.sleep(1200);
 
                         List<WebElement> yes =
@@ -122,7 +99,6 @@ WebDriver driver = new ChromeDriver(options);
                         }
 
                         actionPerformed = true;
-                        Thread.sleep(1500);
                     }
                 }
             }
@@ -137,14 +113,13 @@ WebDriver driver = new ChromeDriver(options);
                 Thread.sleep(1500);
             }
 
-            // REFRESH
+            // REFRESH LOGIC
             if (actionPerformed) {
                 driver.navigate().refresh();
                 Thread.sleep(2500);
             } else {
                 Thread.sleep(60000);
                 driver.navigate().refresh();
-                Thread.sleep(3000);
             }
         }
     }
