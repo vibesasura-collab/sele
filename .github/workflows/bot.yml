@@ -2,7 +2,7 @@ name: Selenium Bot
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # runs every 5 minutes
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -10,8 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup Java
         uses: actions/setup-java@v3
@@ -19,13 +18,5 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Chrome
-        run: |
-          sudo apt update
-          sudo apt install -y google-chrome-stable
-
-      - name: Compile Code
-        run: javac Main.java
-
       - name: Run Bot
-        run: java Main
+        run: mvn -q compile exec:java -Dexec.mainClass=Main
