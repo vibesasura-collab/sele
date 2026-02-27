@@ -29,7 +29,7 @@ public class Main {
         Thread.sleep(2000);
 
         driver.findElement(By.name("plogin")).sendKeys("Avatasoo");
-        driver.findElement(By.name("ppass")).sendKeys("1193811");
+        driver.findElement(By.name("ppass")).sendKeys("1193811@1144");
         driver.findElement(By.cssSelector("input[type='submit']")).click();
 
         Thread.sleep(4000);
