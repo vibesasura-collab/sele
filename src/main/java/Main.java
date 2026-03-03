@@ -86,7 +86,7 @@ public class Main {
 
                     int cost = Integer.parseInt(number);
 
-                    if (cost <= 20) {
+                    if (cost <= 10) {
 
                         goldAttack.get(0).click();
                         Thread.sleep(1200);
