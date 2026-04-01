@@ -5,122 +5,138 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import io.github.bonigarcia.wdm.WebDriverManager;
 
-import java.util.*;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 public class Main {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        String user = System.getenv("GAME_ID");
+        String pass = System.getenv("GAME_PASSWORD");
 
-        // ✅ setup chrome driver automatically
+        if (user == null || user.isEmpty() || pass == null || pass.isEmpty()) {
+            throw new RuntimeException("GAME_ID or GAME_PASSWORD not found in GitHub Secrets.");
+        }
+
         WebDriverManager.chromedriver().setup();
 
-        // ✅ ONLY ONE ChromeOptions object
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless=new");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--window-size=1920,1080");
 
         WebDriver driver = new ChromeDriver(options);
         Random random = new Random();
 
-        // ================= LOGIN =================
-        driver.get("https://elem.cards/login/");
+        try {
+            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
-        Thread.sleep(2000);
+            driver.get("https://elem.cards/login/");
+            sleep(2000);
 
-        driver.findElement(By.name("plogin")).sendKeys("Avatasoo");
-        driver.findElement(By.name("ppass")).sendKeys("1193811@1144");
-        driver.findElement(By.cssSelector("input[type='submit']")).click();
+            driver.findElement(By.name("plogin")).sendKeys(user);
+            driver.findElement(By.name("ppass")).sendKeys(pass);
+            driver.findElement(By.cssSelector("input[type='submit']")).click();
 
-        Thread.sleep(4000);
+            sleep(4000);
 
-        driver.findElement(By.cssSelector("a.urfin")).click();
-        Thread.sleep(3000);
+            driver.findElement(By.cssSelector("a.urfin")).click();
+            sleep(3000);
 
-        // ================= MAIN LOOP =================
-        while (true) {
+            while (true) {
+                boolean actionPerformed = false;
 
-            boolean actionPerformed = false;
+                System.out.println("Searching attacks...");
 
-            System.out.println("Searching attacks...");
+                List<WebElement> attacks = new ArrayList<>();
+                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack0']")));
+                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack1']")));
+                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack2']")));
 
-            List<WebElement> attacks = new ArrayList<>();
+                if (!attacks.isEmpty()) {
+                    Collections.shuffle(attacks);
 
-            attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack0']")));
-            attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack1']")));
-            attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack2']")));
-
-            if (!attacks.isEmpty()) {
-
-                Collections.shuffle(attacks);
-
-                for (WebElement attack : attacks) {
-                    try {
-                        attack.click();
-                        actionPerformed = true;
-                        Thread.sleep(1000 + random.nextInt(300));
-                    } catch (Exception ignored) {}
-                }
-            }
-
-            // NORMAL ATTACK
-            List<WebElement> attackBtn =
-                    driver.findElements(By.xpath("//span[text()='Attack']"));
-
-            if (!attackBtn.isEmpty()) {
-                attackBtn.get(0).click();
-                actionPerformed = true;
-                Thread.sleep(1500);
-            }
-
-            // GOLD ATTACK <=20
-            List<WebElement> goldAttack =
-                    driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
-
-            if (!goldAttack.isEmpty()) {
-
-                String text = goldAttack.get(0).getText();
-                String number = text.replaceAll("[^0-9]", "");
-
-                if (!number.isEmpty()) {
-
-                    int cost = Integer.parseInt(number);
-
-                    if (cost <= 10) {
-
-                        goldAttack.get(0).click();
-                        Thread.sleep(1200);
-
-                        List<WebElement> yes =
-                                driver.findElements(By.xpath("//span[text()='Yes!']"));
-
-                        if (!yes.isEmpty()) {
-                            yes.get(0).click();
+                    for (WebElement attack : attacks) {
+                        try {
+                            attack.click();
+                            actionPerformed = true;
+                            sleep(1000 + random.nextInt(300));
+                        } catch (Exception ignored) {
                         }
-
-                        actionPerformed = true;
                     }
                 }
+
+                List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
+                if (!attackBtn.isEmpty()) {
+                    try {
+                        attackBtn.get(0).click();
+                        actionPerformed = true;
+                        sleep(1500);
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                List<WebElement> goldAttack = driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
+                if (!goldAttack.isEmpty()) {
+                    try {
+                        String text = goldAttack.get(0).getText();
+                        String number = text.replaceAll("[^0-9]", "");
+
+                        if (!number.isEmpty()) {
+                            int cost = Integer.parseInt(number);
+
+                            if (cost <= 10) {
+                                goldAttack.get(0).click();
+                                sleep(1200);
+
+                                List<WebElement> yes = driver.findElements(By.xpath("//span[text()='Yes!']"));
+                                if (!yes.isEmpty()) {
+                                    yes.get(0).click();
+                                }
+
+                                actionPerformed = true;
+                            }
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                List<WebElement> nextBtn = driver.findElements(By.xpath("//span[text()='Next']"));
+                if (!nextBtn.isEmpty()) {
+                    try {
+                        nextBtn.get(0).click();
+                        actionPerformed = true;
+                        sleep(1500);
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                if (actionPerformed) {
+                    driver.navigate().refresh();
+                    sleep(2500);
+                } else {
+                    sleep(60000);
+                    driver.navigate().refresh();
+                }
             }
 
-            // NEXT BUTTON
-            List<WebElement> nextBtn =
-                    driver.findElements(By.xpath("//span[text()='Next']"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            driver.quit();
+        }
+    }
 
-            if (!nextBtn.isEmpty()) {
-                nextBtn.get(0).click();
-                actionPerformed = true;
-                Thread.sleep(1500);
-            }
-
-            // REFRESH LOGIC
-            if (actionPerformed) {
-                driver.navigate().refresh();
-                Thread.sleep(2500);
-            } else {
-                Thread.sleep(60000);
-                driver.navigate().refresh();
-            }
+    public static void sleep(int ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 }
