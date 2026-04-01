@@ -17,10 +17,17 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Install Chrome
+      - name: Install Google Chrome
         run: |
+          sudo apt update
+          sudo apt install -y wget curl unzip gnupg
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
           sudo apt update
           sudo apt install -y google-chrome-stable
 
       - name: Build and Run
-        run: mvn compile exec:java -Dexec.mainClass=Main
+        env:
+          GAME_ID: ${{ secrets.GAME_ID }}
+          GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
+        run: mvn -B compile exec:java -Dexec.mainClass=Main
