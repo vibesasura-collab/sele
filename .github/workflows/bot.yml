@@ -2,10 +2,16 @@ name: Selenium Bot
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * *"
+    - cron: "0 7 * * *"
+    - cron: "0 13 * * *"
+    - cron: "0 19 * * *"
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
 
     steps:
       - name: Checkout repository
