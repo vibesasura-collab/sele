@@ -6,6 +6,9 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,12 +16,21 @@ import java.util.Random;
 
 public class Main {
 
+    private static final int MAX_RUN_MINUTES = 345; // stop a bit before workflow timeout
+    private static final LocalTime DAILY_STOP_START = LocalTime.of(23, 30); // GMT
+    private static final LocalTime DAILY_STOP_END = LocalTime.of(1, 0);      // GMT
+
     public static void main(String[] args) {
         String user = System.getenv("GAME_ID");
         String pass = System.getenv("GAME_PASSWORD");
 
         if (user == null || user.isEmpty() || pass == null || pass.isEmpty()) {
             throw new RuntimeException("GAME_ID or GAME_PASSWORD not found in GitHub Secrets.");
+        }
+
+        if (isInShutdownWindow()) {
+            System.out.println("Inside daily shutdown window (23:30-01:00 GMT). Exiting.");
+            return;
         }
 
         WebDriverManager.chromedriver().setup();
@@ -32,6 +44,7 @@ public class Main {
 
         WebDriver driver = new ChromeDriver(options);
         Random random = new Random();
+        Instant startTime = Instant.now();
 
         try {
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
@@ -49,6 +62,11 @@ public class Main {
             sleep(3000);
 
             while (true) {
+                if (shouldStopNow(startTime)) {
+                    System.out.println("Stopping now due to runtime limit or daily shutdown window.");
+                    break;
+                }
+
                 boolean actionPerformed = false;
 
                 System.out.println("Searching attacks...");
@@ -116,6 +134,11 @@ public class Main {
                     }
                 }
 
+                if (shouldStopNow(startTime)) {
+                    System.out.println("Stopping now due to runtime limit or daily shutdown window.");
+                    break;
+                }
+
                 if (actionPerformed) {
                     driver.navigate().refresh();
                     sleep(2500);
@@ -130,6 +153,16 @@ public class Main {
         } finally {
             driver.quit();
         }
+    }
+
+    public static boolean shouldStopNow(Instant startTime) {
+        long elapsedMinutes = Duration.between(startTime, Instant.now()).toMinutes();
+        return elapsedMinutes >= MAX_RUN_MINUTES || isInShutdownWindow();
+    }
+
+    public static boolean isInShutdownWindow() {
+        LocalTime now = LocalTime.now(ZoneOffset.UTC);
+        return !now.isBefore(DAILY_STOP_START) || now.isBefore(DAILY_STOP_END);
     }
 
     public static void sleep(int ms) {
