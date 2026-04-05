@@ -20,7 +20,15 @@ public class Main {
     private static final LocalTime DAILY_STOP_START = LocalTime.of(23, 30); // GMT
     private static final LocalTime DAILY_STOP_END = LocalTime.of(1, 0);      // GMT
 
+    private static final boolean TODAY_OFF = true; // true = bot OFF today, false = bot ON
+
     public static void main(String[] args) {
+
+        if (TODAY_OFF) {
+            System.out.println("Bot OFF today. Exiting.");
+            return;
+        }
+
         String user = System.getenv("GAME_ID");
         String pass = System.getenv("GAME_PASSWORD");
 
