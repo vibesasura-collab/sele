@@ -15,11 +15,11 @@ import java.util.Random;
 
 public class Main {
 
-    private static final int MAX_RUN_MINUTES = 345; // stop a bit before workflow timeout
-    private static final LocalTime DAILY_STOP_START = LocalTime.of(23, 30); // GMT
-    private static final LocalTime DAILY_STOP_END = LocalTime.of(1, 0);      // GMT
+    private static final int MAX_RUN_MINUTES = 345;
+    private static final LocalTime DAILY_STOP_START = LocalTime.of(23, 30);
+    private static final LocalTime DAILY_STOP_END = LocalTime.of(1, 0);
 
-    private static final boolean TODAY_OFF = false; // true = bot OFF today, false = bot ON
+    private static final boolean TODAY_OFF = false;
 
     public static void main(String[] args) {
 
@@ -69,13 +69,17 @@ public class Main {
             sleep(3000);
 
             while (true) {
+
+                long loopStart = System.currentTimeMillis();
+
                 if (shouldStopNow(startTime)) {
                     System.out.println("Stopping now due to runtime limit or daily shutdown window.");
                     break;
                 }
 
                 boolean actionPerformed = false;
-                System.out.println("Clicking attack0, attack1, attack2...");
+
+                System.out.println("Checking attacks...");
 
                 List<WebElement> attacks = new ArrayList<>();
                 attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack0']")));
@@ -84,9 +88,11 @@ public class Main {
 
                 if (!attacks.isEmpty()) {
 
-                    for (WebElement attack : attacks) {
+                    System.out.println("Found " + attacks.size() + " attacks. Clicking all...");
+
+                    for (int i = 0; i < attacks.size(); i++) {
                         try {
-                            attack.click();
+                            attacks.get(i).click();
                         } catch (Exception ignored) {
                         }
                     }
@@ -142,8 +148,13 @@ public class Main {
                     break;
                 }
 
-                // SINGLE refresh every 10 seconds
-                sleep(10000);
+                long elapsed = System.currentTimeMillis() - loopStart;
+                long remaining = 10000 - elapsed;
+
+                if (remaining > 0) {
+                    sleep((int) remaining);
+                }
+
                 driver.navigate().refresh();
             }
 
