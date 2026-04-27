@@ -75,27 +75,30 @@ public class Main {
                     break;
                 }
 
-                boolean actionPerformed = false;
+              System.out.println("Clicking attack0, attack1, attack2...");
 
-                System.out.println("Searching attacks...");
+List<WebElement> attacks = new ArrayList<>();
+attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack0']")));
+attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack1']")));
+attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack2']")));
 
-                List<WebElement> attacks = new ArrayList<>();
-                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack0']")));
-                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack1']")));
-                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack2']")));
+if (!attacks.isEmpty()) {
 
-                if (!attacks.isEmpty()) {
-                    Collections.shuffle(attacks);
+    for (WebElement attack : attacks) {
+        try {
+            attack.click();
+        } catch (Exception ignored) {
+        }
+    }
 
-                    for (WebElement attack : attacks) {
-                        try {
-                            attack.click();
-                            actionPerformed = true;
-                            sleep(1000 + random.nextInt(300));
-                        } catch (Exception ignored) {
-                        }
-                    }
-                }
+    // wait 10 seconds
+    sleep(10000);
+
+    // refresh page
+    driver.navigate().refresh();
+
+    sleep(2500);
+}
 
                 List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
                 if (!attackBtn.isEmpty()) {
