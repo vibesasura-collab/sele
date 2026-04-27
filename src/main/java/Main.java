@@ -102,7 +102,7 @@ public class Main {
                     try {
                         attackBtn.get(0).click();
                         actionPerformed = true;
-                        sleep(500);
+                        sleep(1500);
                     } catch (Exception ignored) {
                     }
                 }
