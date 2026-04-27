@@ -79,7 +79,10 @@ public class Main {
 
                 boolean actionPerformed = false;
 
-                // --- DEBUG: count each attack type ---
+                // -------- Collect attack links first --------
+
+                List<String> attackLinks = new ArrayList<>();
+
                 List<WebElement> attack0 = driver.findElements(By.cssSelector("a[href*='attack0']"));
                 List<WebElement> attack1 = driver.findElements(By.cssSelector("a[href*='attack1']"));
                 List<WebElement> attack2 = driver.findElements(By.cssSelector("a[href*='attack2']"));
@@ -90,23 +93,29 @@ public class Main {
                         " | attack2: " + attack2.size()
                 );
 
-                List<WebElement> attacks = new ArrayList<>();
-                attacks.addAll(attack0);
-                attacks.addAll(attack1);
-                attacks.addAll(attack2);
+                for (WebElement e : attack0) {
+                    attackLinks.add(e.getAttribute("href"));
+                }
 
-                if (!attacks.isEmpty()) {
+                for (WebElement e : attack1) {
+                    attackLinks.add(e.getAttribute("href"));
+                }
 
-                    System.out.println("Clicking all available attacks...");
+                for (WebElement e : attack2) {
+                    attackLinks.add(e.getAttribute("href"));
+                }
 
-                    for (WebElement attack : attacks) {
-                        try {
-                            attack.click();
-                            sleep(500);
-                        } catch (Exception ignored) {
-                        }
+                // -------- Visit each attack --------
+
+                for (String link : attackLinks) {
+                    try {
+                        driver.get(link);
+                        sleep(800);
+                    } catch (Exception ignored) {
                     }
                 }
+
+                // -------- Attack button --------
 
                 List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
                 if (!attackBtn.isEmpty()) {
@@ -117,6 +126,8 @@ public class Main {
                     } catch (Exception ignored) {
                     }
                 }
+
+                // -------- Gold attack --------
 
                 List<WebElement> goldAttack = driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
                 if (!goldAttack.isEmpty()) {
@@ -143,6 +154,8 @@ public class Main {
                     }
                 }
 
+                // -------- Next button --------
+
                 List<WebElement> nextBtn = driver.findElements(By.xpath("//span[text()='Next']"));
                 if (!nextBtn.isEmpty()) {
                     try {
@@ -157,6 +170,8 @@ public class Main {
                     System.out.println("Stopping now due to runtime limit or daily shutdown window.");
                     break;
                 }
+
+                // -------- Maintain exact 10-second loop --------
 
                 long elapsed = System.currentTimeMillis() - loopStart;
                 long remaining = 10000 - elapsed;
