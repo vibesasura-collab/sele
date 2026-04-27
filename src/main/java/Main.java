@@ -91,7 +91,7 @@ public class Main {
                         try {
                             attack.click();
                             actionPerformed = true;
-                            sleep(200 + random.nextInt(300));
+                            sleep(1000 + random.nextInt(300));
                         } catch (Exception ignored) {
                         }
                     }
@@ -102,7 +102,7 @@ public class Main {
                     try {
                         attackBtn.get(0).click();
                         actionPerformed = true;
-                        sleep(1500);
+                        sleep(500);
                     } catch (Exception ignored) {
                     }
                 }
