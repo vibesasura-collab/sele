@@ -10,7 +10,6 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -74,31 +73,24 @@ public class Main {
                     System.out.println("Stopping now due to runtime limit or daily shutdown window.");
                     break;
                 }
-boolean actionPerformed = false;
-              System.out.println("Clicking attack0, attack1, attack2...");
 
-List<WebElement> attacks = new ArrayList<>();
-attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack0']")));
-attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack1']")));
-attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack2']")));
+                boolean actionPerformed = false;
+                System.out.println("Clicking attack0, attack1, attack2...");
 
-if (!attacks.isEmpty()) {
+                List<WebElement> attacks = new ArrayList<>();
+                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack0']")));
+                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack1']")));
+                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack2']")));
 
-    for (WebElement attack : attacks) {
-        try {
-            attack.click();
-        } catch (Exception ignored) {
-        }
-    }
-}
+                if (!attacks.isEmpty()) {
 
-// ALWAYS wait 10 seconds
-sleep(10000);
-
-// ALWAYS refresh page
-driver.navigate().refresh();
-
-sleep(2500);
+                    for (WebElement attack : attacks) {
+                        try {
+                            attack.click();
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
 
                 List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
                 if (!attackBtn.isEmpty()) {
@@ -150,8 +142,9 @@ sleep(2500);
                     break;
                 }
 
+                // SINGLE refresh every 10 seconds
                 sleep(10000);
-driver.navigate().refresh();
+                driver.navigate().refresh();
             }
 
         } catch (Exception e) {
