@@ -79,20 +79,30 @@ public class Main {
 
                 boolean actionPerformed = false;
 
-                System.out.println("Checking attacks...");
+                // --- DEBUG: count each attack type ---
+                List<WebElement> attack0 = driver.findElements(By.cssSelector("a[href*='attack0']"));
+                List<WebElement> attack1 = driver.findElements(By.cssSelector("a[href*='attack1']"));
+                List<WebElement> attack2 = driver.findElements(By.cssSelector("a[href*='attack2']"));
+
+                System.out.println(
+                        "attack0: " + attack0.size() +
+                        " | attack1: " + attack1.size() +
+                        " | attack2: " + attack2.size()
+                );
 
                 List<WebElement> attacks = new ArrayList<>();
-                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack0']")));
-                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack1']")));
-                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack2']")));
+                attacks.addAll(attack0);
+                attacks.addAll(attack1);
+                attacks.addAll(attack2);
 
                 if (!attacks.isEmpty()) {
 
-                    System.out.println("Found " + attacks.size() + " attacks. Clicking all...");
+                    System.out.println("Clicking all available attacks...");
 
-                    for (int i = 0; i < attacks.size(); i++) {
+                    for (WebElement attack : attacks) {
                         try {
-                            attacks.get(i).click();
+                            attack.click();
+                            sleep(500);
                         } catch (Exception ignored) {
                         }
                     }
