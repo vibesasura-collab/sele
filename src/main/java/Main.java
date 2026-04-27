@@ -150,13 +150,8 @@ if (!attacks.isEmpty()) {
                     break;
                 }
 
-                if (actionPerformed) {
-                    driver.navigate().refresh();
-                    sleep(2500);
-                } else {
-                    sleep(60000);
-                    driver.navigate().refresh();
-                }
+                sleep(10000);
+driver.navigate().refresh();
             }
 
         } catch (Exception e) {
