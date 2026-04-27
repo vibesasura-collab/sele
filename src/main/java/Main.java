@@ -74,7 +74,7 @@ public class Main {
                     System.out.println("Stopping now due to runtime limit or daily shutdown window.");
                     break;
                 }
-
+boolean actionPerformed = false;
               System.out.println("Clicking attack0, attack1, attack2...");
 
 List<WebElement> attacks = new ArrayList<>();
