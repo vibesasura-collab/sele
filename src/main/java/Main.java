@@ -90,15 +90,15 @@ if (!attacks.isEmpty()) {
         } catch (Exception ignored) {
         }
     }
-
-    // wait 10 seconds
-    sleep(10000);
-
-    // refresh page
-    driver.navigate().refresh();
-
-    sleep(2500);
 }
+
+// ALWAYS wait 10 seconds
+sleep(10000);
+
+// ALWAYS refresh page
+driver.navigate().refresh();
+
+sleep(2500);
 
                 List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
                 if (!attackBtn.isEmpty()) {
