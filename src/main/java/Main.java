@@ -91,7 +91,7 @@ public class Main {
                         try {
                             attack.click();
                             actionPerformed = true;
-                            sleep(1000 + random.nextInt(300));
+                            sleep(200 + random.nextInt(300));
                         } catch (Exception ignored) {
                         }
                     }
