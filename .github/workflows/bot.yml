@@ -2,13 +2,11 @@ name: Selenium Bot
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/20 * * * *"   # 🔥 run every 20 minutes
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 25      # ⚠️ keep slightly above your Java runtime
+    timeout-minutes: 360   # max allowed (~6 hours)
 
     steps:
       - name: Checkout repository
@@ -20,7 +18,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Install Google Chrome
+      - name: Install Chrome
         run: |
           sudo apt update
           sudo apt install -y wget curl unzip gnupg
@@ -29,8 +27,16 @@ jobs:
           sudo apt update
           sudo apt install -y google-chrome-stable
 
-      - name: Build and Run
+      # 🔥 MAIN LOOP (IMPORTANT)
+      - name: Run bot continuously
         env:
           GAME_ID: ${{ secrets.GAME_ID }}
           GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
-        run: mvn -B compile exec:java -Dexec.mainClass=Main
+        run: |
+          while true
+          do
+            echo "Starting bot run..."
+            mvn -B compile exec:java -Dexec.mainClass=Main
+            echo "Bot finished. Restarting in 5 seconds..."
+            sleep 5
+          done
