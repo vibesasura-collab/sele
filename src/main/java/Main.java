@@ -36,7 +36,7 @@ public class Main {
         }
 
         if (isInShutdownWindow()) {
-            System.out.println("Inside daily shutdown window (23:30-01:00 GMT). Exiting.");
+            System.out.println("Inside daily shutdown window. Exiting.");
             return;
         }
 
@@ -68,19 +68,24 @@ public class Main {
             driver.findElement(By.cssSelector("a.urfin")).click();
             sleep(3000);
 
-            while (true) {
+            // ✅ FIXED LOOP
+            while (!Thread.currentThread().isInterrupted()) {
+
+                if (Thread.currentThread().isInterrupted()) {
+                    System.out.println("Thread interrupted. Exiting loop.");
+                    break;
+                }
 
                 long loopStart = System.currentTimeMillis();
 
                 if (shouldStopNow(startTime)) {
-                    System.out.println("Stopping now due to runtime limit or daily shutdown window.");
+                    System.out.println("Stopping due to runtime or schedule.");
                     break;
                 }
 
                 boolean actionPerformed = false;
 
-                // -------- Collect attack links first --------
-
+                // -------- Collect attack links --------
                 List<String> attackLinks = new ArrayList<>();
 
                 List<WebElement> attack0 = driver.findElements(By.cssSelector("a[href*='attack0']"));
@@ -93,42 +98,31 @@ public class Main {
                         " | attack2: " + attack2.size()
                 );
 
-                for (WebElement e : attack0) {
-                    attackLinks.add(e.getAttribute("href"));
-                }
-
-                for (WebElement e : attack1) {
-                    attackLinks.add(e.getAttribute("href"));
-                }
-
-                for (WebElement e : attack2) {
-                    attackLinks.add(e.getAttribute("href"));
-                }
+                for (WebElement e : attack0) attackLinks.add(e.getAttribute("href"));
+                for (WebElement e : attack1) attackLinks.add(e.getAttribute("href"));
+                for (WebElement e : attack2) attackLinks.add(e.getAttribute("href"));
 
                 // -------- Visit each attack --------
-
                 for (String link : attackLinks) {
+                    if (Thread.currentThread().isInterrupted()) break;
+
                     try {
                         driver.get(link);
                         sleep(800);
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
 
                 // -------- Attack button --------
-
                 List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
                 if (!attackBtn.isEmpty()) {
                     try {
                         attackBtn.get(0).click();
                         actionPerformed = true;
                         sleep(1500);
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
 
                 // -------- Gold attack --------
-
                 List<WebElement> goldAttack = driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
                 if (!goldAttack.isEmpty()) {
                     try {
@@ -150,29 +144,25 @@ public class Main {
                                 actionPerformed = true;
                             }
                         }
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
 
                 // -------- Next button --------
-
                 List<WebElement> nextBtn = driver.findElements(By.xpath("//span[text()='Next']"));
                 if (!nextBtn.isEmpty()) {
                     try {
                         nextBtn.get(0).click();
                         actionPerformed = true;
                         sleep(1500);
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
 
                 if (shouldStopNow(startTime)) {
-                    System.out.println("Stopping now due to runtime limit or daily shutdown window.");
+                    System.out.println("Stopping due to runtime or schedule.");
                     break;
                 }
 
-                // -------- Maintain exact 10-second loop --------
-
+                // -------- Maintain 10-sec loop --------
                 long elapsed = System.currentTimeMillis() - loopStart;
                 long remaining = 10000 - elapsed;
 
@@ -184,8 +174,9 @@ public class Main {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Bot stopped: " + e.getMessage());
         } finally {
+            System.out.println("Closing driver...");
             driver.quit();
         }
     }
@@ -200,11 +191,13 @@ public class Main {
         return !now.isBefore(DAILY_STOP_START) || now.isBefore(DAILY_STOP_END);
     }
 
+    // ✅ FIXED sleep
     public static void sleep(int ms) {
         try {
             Thread.sleep(ms);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted");
         }
     }
 }
