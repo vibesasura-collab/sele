@@ -14,8 +14,8 @@ import java.util.List;
 
 public class Main {
 
-    private static final int MAX_RUN_MINUTES = 340; // stop before GitHub kills job
-    private static final int REST_AFTER_MINUTES = 360; // 6 hours
+    private static final int MAX_RUN_MINUTES = 330; // ✅ match GitHub 6hr job
+    private static final int REST_AFTER_MINUTES = 360; // 6 hrs
     private static final int REST_DURATION_MS = 600000; // 10 min
 
     private static final LocalTime DAILY_STOP_START = LocalTime.of(23, 30);
@@ -42,6 +42,7 @@ public class Main {
                 "--disable-dev-shm-usage", "--disable-gpu");
 
         WebDriver driver = new ChromeDriver(options);
+
         Instant startTime = Instant.now();
         Instant lastRestTime = Instant.now();
 
@@ -63,12 +64,13 @@ public class Main {
 
                 long loopStart = System.currentTimeMillis();
 
+                // ✅ stop before GitHub kills job
                 if (shouldStopNow(startTime)) {
-                    System.out.println("Stopping before forced shutdown.");
+                    System.out.println("Stopping cleanly before timeout...");
                     break;
                 }
 
-                // ✅ 6-hour rest logic
+                // ✅ 6 hr rest logic
                 long sinceLastRest = Duration.between(lastRestTime, Instant.now()).toMinutes();
                 if (sinceLastRest >= REST_AFTER_MINUTES) {
                     System.out.println("Taking 10 min rest...");
@@ -76,7 +78,7 @@ public class Main {
                     lastRestTime = Instant.now();
                 }
 
-                // -------- Collect links --------
+                // -------- collect attack links --------
                 List<String> attackLinks = new ArrayList<>();
 
                 for (WebElement e : driver.findElements(By.cssSelector("a[href*='attack0']")))
@@ -88,7 +90,7 @@ public class Main {
                 for (WebElement e : driver.findElements(By.cssSelector("a[href*='attack2']")))
                     attackLinks.add(e.getAttribute("href"));
 
-                // -------- Visit attacks --------
+                // -------- visit attacks --------
                 for (String link : attackLinks) {
                     if (Thread.currentThread().isInterrupted()) break;
                     try {
@@ -97,12 +99,12 @@ public class Main {
                     } catch (Exception ignored) {}
                 }
 
-                // -------- Attack --------
+                // -------- attack --------
                 clickIfExists(driver, "//span[text()='Attack']", 1500);
                 handleGoldAttack(driver);
                 clickIfExists(driver, "//span[text()='Next']", 1500);
 
-                // -------- Maintain 10 sec loop --------
+                // -------- maintain 10 sec loop --------
                 long elapsed = System.currentTimeMillis() - loopStart;
                 long remaining = 10000 - elapsed;
                 if (remaining > 0) sleep((int) remaining);
@@ -118,7 +120,7 @@ public class Main {
         }
     }
 
-    // ---------------- Helpers ----------------
+    // ---------------- helpers ----------------
 
     public static boolean shouldStopNow(Instant startTime) {
         long mins = Duration.between(startTime, Instant.now()).toMinutes();
