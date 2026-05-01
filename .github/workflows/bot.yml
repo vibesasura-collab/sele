@@ -3,15 +3,12 @@ name: Selenium Bot
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 1 * * *"
-    - cron: "0 7 * * *"
-    - cron: "0 13 * * *"
-    - cron: "0 19 * * *"
+    - cron: "*/20 * * * *"   # 🔥 run every 20 minutes
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 25      # ⚠️ keep slightly above your Java runtime
 
     steps:
       - name: Checkout repository
