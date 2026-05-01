@@ -1,8 +1,12 @@
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.time.Duration;
@@ -14,9 +18,9 @@ import java.util.List;
 
 public class Main {
 
-    private static final int MAX_RUN_MINUTES = 330; // ✅ match GitHub 6hr job
-    private static final int REST_AFTER_MINUTES = 360; // 6 hrs
-    private static final int REST_DURATION_MS = 600000; // 10 min
+    private static final int MAX_RUN_MINUTES = 330;
+    private static final int REST_AFTER_MINUTES = 360;
+    private static final int REST_DURATION_MS = 600000;
 
     private static final LocalTime DAILY_STOP_START = LocalTime.of(23, 30);
     private static final LocalTime DAILY_STOP_END = LocalTime.of(1, 0);
@@ -42,6 +46,7 @@ public class Main {
                 "--disable-dev-shm-usage", "--disable-gpu");
 
         WebDriver driver = new ChromeDriver(options);
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15)); // ✅ added
 
         Instant startTime = Instant.now();
         Instant lastRestTime = Instant.now();
@@ -49,6 +54,7 @@ public class Main {
         try {
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
+            // 🔐 LOGIN
             driver.get("https://elem.cards/login/");
             sleep(2000);
 
@@ -56,21 +62,30 @@ public class Main {
             driver.findElement(By.name("ppass")).sendKeys(pass);
             driver.findElement(By.cssSelector("input[type='submit']")).click();
 
-            sleep(4000);
-            driver.findElement(By.cssSelector("a.urfin")).click();
+            // ✅ WAIT after login (IMPORTANT FIX)
+            wait.until(ExpectedConditions.urlContains("cards")); 
+            // If this fails, replace with any element visible after login
+
+            // 👉 OPEN PAGE AFTER LOGIN
+            driver.get("https://elem.cards/urfin/");
+
+            // ✅ WAIT for element before clicking (MAIN FIX)
+            WebElement urfinBtn = wait.until(
+                ExpectedConditions.presenceOfElementLocated(By.cssSelector("a.urfin"))
+            );
+            urfinBtn.click();
+
             sleep(3000);
 
             while (!Thread.currentThread().isInterrupted()) {
 
                 long loopStart = System.currentTimeMillis();
 
-                // ✅ stop before GitHub kills job
                 if (shouldStopNow(startTime)) {
                     System.out.println("Stopping cleanly before timeout...");
                     break;
                 }
 
-                // ✅ 6 hr rest logic
                 long sinceLastRest = Duration.between(lastRestTime, Instant.now()).toMinutes();
                 if (sinceLastRest >= REST_AFTER_MINUTES) {
                     System.out.println("Taking 10 min rest...");
@@ -104,7 +119,6 @@ public class Main {
                 handleGoldAttack(driver);
                 clickIfExists(driver, "//span[text()='Next']", 1500);
 
-                // -------- maintain 10 sec loop --------
                 long elapsed = System.currentTimeMillis() - loopStart;
                 long remaining = 10000 - elapsed;
                 if (remaining > 0) sleep((int) remaining);
