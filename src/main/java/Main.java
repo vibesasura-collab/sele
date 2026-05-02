@@ -14,7 +14,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        System.out.println("🚀 Selenium session started");
+        System.out.println("🚀 Bot Started");
 
         String user = System.getenv("GAME_ID");
         String pass = System.getenv("GAME_PASSWORD");
@@ -29,9 +29,9 @@ public class Main {
         options.addArguments("--headless=new");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--disable-gpu");
 
         WebDriver driver = new ChromeDriver(options);
-
         Instant start = Instant.now();
 
         try {
@@ -48,39 +48,54 @@ public class Main {
             sleep(4000);
             System.out.println("🔓 Login completed");
 
-            // ---------------- OPEN PAGE ----------------
+            // ---------------- URFIN PAGE ----------------
             List<WebElement> urfin = driver.findElements(By.cssSelector("a.urfin"));
+
             if (!urfin.isEmpty()) {
                 urfin.get(0).click();
-                System.out.println("📍 Entered section");
+                sleep(5000);
+                driver.navigate().refresh();
+                sleep(3000);
             }
 
-            sleep(3000);
+            System.out.println("📍 Entered urfin");
 
             // ---------------- MAIN LOOP ----------------
             while (true) {
 
                 long mins = Duration.between(start, Instant.now()).toMinutes();
-                if (mins > 300) {
+                if (mins > 330) {
                     System.out.println("⛔ Time limit reached");
                     break;
                 }
 
-                System.out.println("🔍 Scanning actions...");
+                System.out.println("🔍 Scanning...");
 
-                // Example: collect action links safely
-                List<WebElement> actions = driver.findElements(By.cssSelector("a[href*='attack']"));
+                // ⚔️ STEP 1: NORMAL ATTACKS
+                List<WebElement> attacks =
+                        driver.findElements(By.cssSelector("a[href*='attack']"));
 
-                for (WebElement a : actions) {
-                    try {
-                        a.click();
-                        sleep(800);
-                    } catch (Exception ignored) {}
+                if (!attacks.isEmpty()) {
+
+                    System.out.println("⚔️ Normal attacks found: " + attacks.size());
+
+                    for (WebElement a : attacks) {
+                        try {
+                            a.click();
+                            sleep(700);
+                        } catch (Exception ignored) {}
+                    }
+
+                    click(driver, "//span[text()='Attack']");
+                    click(driver, "//span[text()='Next']");
+
+                } else {
+
+                    // 💰 STEP 2: GOLD ONLY IF NO NORMAL ATTACKS
+                    System.out.println("💰 No normal attacks → checking gold");
+
+                    handleGold(driver);
                 }
-
-                clickIfExists(driver, "//span[text()='Attack']");
-                handleGoldStyleAction(driver);   // 💰 example pattern
-                clickIfExists(driver, "//span[text()='Next']");
 
                 driver.navigate().refresh();
                 sleep(4000);
@@ -89,52 +104,53 @@ public class Main {
         } catch (Exception e) {
             System.out.println("❌ Error: " + e.getMessage());
         } finally {
-            System.out.println("🧹 Closing browser");
+            System.out.println("🧹 Closing driver");
             driver.quit();
         }
     }
 
-    // ---------------- GOLD-LIKE ACTION HANDLER (GENERIC PATTERN) ----------------
-    public static void handleGoldStyleAction(WebDriver driver) {
+    // ---------------- GOLD HANDLER ----------------
+    public static void handleGold(WebDriver driver) {
+
         try {
-            List<WebElement> gold = driver.findElements(
-                    By.xpath("//*[contains(text(),'Attack now for')]")
-            );
+            List<WebElement> gold =
+                    driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
 
             if (!gold.isEmpty()) {
 
                 String text = gold.get(0).getText();
-                String number = text.replaceAll("[^0-9]", "");
+                String num = text.replaceAll("[^0-9]", "");
 
-                if (!number.isEmpty()) {
-                    int cost = Integer.parseInt(number);
+                if (!num.isEmpty()) {
+                    int cost = Integer.parseInt(num);
 
-                    System.out.println("💰 Detected cost: " + cost);
+                    System.out.println("💰 Gold cost: " + cost);
 
                     if (cost <= 10) {
                         gold.get(0).click();
                         sleep(1000);
 
-                        List<WebElement> yes = driver.findElements(
-                                By.xpath("//*[text()='Yes!']")
-                        );
+                        List<WebElement> yes =
+                                driver.findElements(By.xpath("//span[text()='Yes!']"));
 
                         if (!yes.isEmpty()) {
                             yes.get(0).click();
                         }
 
-                        System.out.println("✅ Action confirmed");
+                        System.out.println("✅ Gold attack executed");
+                    } else {
+                        System.out.println("❌ Gold too expensive");
                     }
                 }
             }
 
         } catch (Exception e) {
-            System.out.println("Gold action error: " + e.getMessage());
+            System.out.println("Gold error: " + e.getMessage());
         }
     }
 
     // ---------------- SAFE CLICK ----------------
-    public static void clickIfExists(WebDriver driver, String xpath) {
+    public static void click(WebDriver driver, String xpath) {
         try {
             List<WebElement> el = driver.findElements(By.xpath(xpath));
             if (!el.isEmpty()) {
