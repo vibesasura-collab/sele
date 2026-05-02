@@ -3,24 +3,42 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class Main {
 
+    private static final int MAX_RUN_MINUTES = 345; // stop a bit before workflow timeout
+    private static final LocalTime DAILY_STOP_START = LocalTime.of(23, 30); // GMT
+    private static final LocalTime DAILY_STOP_END = LocalTime.of(1, 0);      // GMT
+
+    private static final boolean TODAY_OFF = false; // true = bot OFF today, false = bot ON
+
     public static void main(String[] args) {
 
-        System.out.println("🚀 Selenium Session Started");
+        if (TODAY_OFF) {
+            System.out.println("Bot OFF today. Exiting.");
+            return;
+        }
 
         String user = System.getenv("GAME_ID");
         String pass = System.getenv("GAME_PASSWORD");
 
-        if (user == null || pass == null) {
-            throw new RuntimeException("Missing credentials");
+        if (user == null || user.isEmpty() || pass == null || pass.isEmpty()) {
+            throw new RuntimeException("GAME_ID or GAME_PASSWORD not found in GitHub Secrets.");
+        }
+
+        if (isInShutdownWindow()) {
+            System.out.println("Inside daily shutdown window (23:30-01:00 GMT). Exiting.");
+            return;
         }
 
         WebDriverManager.chromedriver().setup();
@@ -29,14 +47,16 @@ public class Main {
         options.addArguments("--headless=new");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--window-size=1920,1080");
 
         WebDriver driver = new ChromeDriver(options);
-        Instant start = Instant.now();
+        Random random = new Random();
+        Instant startTime = Instant.now();
 
         try {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(4));
+            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
-            // ---------------- LOGIN ----------------
             driver.get("https://elem.cards/login/");
             sleep(2000);
 
@@ -45,122 +65,114 @@ public class Main {
             driver.findElement(By.cssSelector("input[type='submit']")).click();
 
             sleep(4000);
-            System.out.println("🔓 Login complete");
 
-            // ---------------- ENTER URFIN ----------------
-            List<WebElement> urfin = driver.findElements(By.cssSelector("a.urfin"));
+            driver.findElement(By.cssSelector("a.urfin")).click();
+            sleep(3000);
 
-            if (!urfin.isEmpty()) {
-                urfin.get(0).click();
-                sleep(4000);
-            }
-
-            System.out.println("📍 In urfin page");
-
-            // ---------------- MAIN LOOP ----------------
             while (true) {
-
-                long mins = Duration.between(start, Instant.now()).toMinutes();
-                if (mins > 330) {
-                    System.out.println("⛔ Time limit reached");
+                if (shouldStopNow(startTime)) {
+                    System.out.println("Stopping now due to runtime limit or daily shutdown window.");
                     break;
                 }
 
-                System.out.println("🔍 Checking state...");
+                boolean actionPerformed = false;
 
-                // ---------------- BATTLE CARDS ----------------
-                List<WebElement> attacks =
-                        driver.findElements(By.cssSelector("div.fb_path a.card"));
+                System.out.println("Searching attacks...");
+
+                List<WebElement> attacks = new ArrayList<>();
+                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack0']")));
+                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack1']")));
+                attacks.addAll(driver.findElements(By.cssSelector("a[href*='attack2']")));
 
                 if (!attacks.isEmpty()) {
+                    Collections.shuffle(attacks);
 
-                    System.out.println("⚔️ Battle cards found: " + attacks.size());
-
-                    for (WebElement card : attacks) {
+                    for (WebElement attack : attacks) {
                         try {
-                            card.click();
-                            sleep(800);
-                        } catch (Exception ignored) {}
+                            attack.click();
+                            actionPerformed = true;
+                            sleep(1000 + random.nextInt(300));
+                        } catch (Exception ignored) {
+                        }
                     }
+                }
 
-                    click(driver, "//span[text()='Attack']");
-                    click(driver, "//span[text()='Next']");
+                List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
+                if (!attackBtn.isEmpty()) {
+                    try {
+                        attackBtn.get(0).click();
+                        actionPerformed = true;
+                        sleep(1500);
+                    } catch (Exception ignored) {
+                    }
+                }
 
-                    driver.navigate().refresh();
-                    sleep(2000);
+                List<WebElement> goldAttack = driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
+                if (!goldAttack.isEmpty()) {
+                    try {
+                        String text = goldAttack.get(0).getText();
+                        String number = text.replaceAll("[^0-9]", "");
 
-                } else {
+                        if (!number.isEmpty()) {
+                            int cost = Integer.parseInt(number);
 
-                    // ---------------- GOLD CHECK ----------------
-                    List<WebElement> gold =
-                            driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
+                            if (cost <= 20) {
+                                goldAttack.get(0).click();
+                                sleep(1200);
 
-                    if (!gold.isEmpty()) {
-
-                        String text = gold.get(0).getText();
-                        String num = text.replaceAll("[^0-9]", "");
-
-                        if (!num.isEmpty()) {
-                            int cost = Integer.parseInt(num);
-
-                            System.out.println("💰 Gold cost: " + cost);
-
-                            if (cost <= 10) {
-                                gold.get(0).click();
-                                sleep(1000);
-
-                                List<WebElement> yes =
-                                        driver.findElements(By.xpath("//span[text()='Yes!']"));
-
+                                List<WebElement> yes = driver.findElements(By.xpath("//span[text()='Yes!']"));
                                 if (!yes.isEmpty()) {
                                     yes.get(0).click();
                                 }
 
-                                System.out.println("✅ Gold used");
-                            } else {
-                                System.out.println("❌ Gold too expensive");
+                                actionPerformed = true;
                             }
                         }
-
-                    } else {
-
-                        // ---------------- COOLDOWN / NO BOSS ----------------
-                        System.out.println("⏳ No battle available");
-
-                        try {
-                            WebElement cd =
-                                    driver.findElement(By.id("urfin_cooldown"));
-
-                            System.out.println("Cooldown: " + cd.getText());
-
-                        } catch (Exception ignored) {}
-
-                        sleep(5000);
-                        driver.navigate().refresh();
+                    } catch (Exception ignored) {
                     }
+                }
+
+                List<WebElement> nextBtn = driver.findElements(By.xpath("//span[text()='Next']"));
+                if (!nextBtn.isEmpty()) {
+                    try {
+                        nextBtn.get(0).click();
+                        actionPerformed = true;
+                        sleep(1500);
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                if (shouldStopNow(startTime)) {
+                    System.out.println("Stopping now due to runtime limit or daily shutdown window.");
+                    break;
+                }
+
+                if (actionPerformed) {
+                    driver.navigate().refresh();
+                    sleep(2500);
+                } else {
+                    sleep(60000);
+                    driver.navigate().refresh();
                 }
             }
 
         } catch (Exception e) {
-            System.out.println("❌ Error: " + e.getMessage());
+            e.printStackTrace();
         } finally {
-            System.out.println("🧹 Closing driver");
             driver.quit();
         }
     }
 
-    // ---------------- SAFE CLICK ----------------
-    public static void click(WebDriver driver, String xpath) {
-        try {
-            List<WebElement> el = driver.findElements(By.xpath(xpath));
-            if (!el.isEmpty()) {
-                el.get(0).click();
-                sleep(800);
-            }
-        } catch (Exception ignored) {}
+    public static boolean shouldStopNow(Instant startTime) {
+        long elapsedMinutes = Duration.between(startTime, Instant.now()).toMinutes();
+        return elapsedMinutes >= MAX_RUN_MINUTES || isInShutdownWindow();
     }
 
-    // ---------------- SLEEP ----------------
+    public static boolean isInShutdownWindow() {
+        LocalTime now = LocalTime.now(ZoneOffset.UTC);
+        return !now.isBefore(DAILY_STOP_START) || now.isBefore(DAILY_STOP_END);
+    }
+
     public static void sleep(int ms) {
         try {
             Thread.sleep(ms);
