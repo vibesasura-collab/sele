@@ -8,21 +8,13 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
 
-    private static final int MAX_RUN_MINUTES = 330;
-    private static final int REST_AFTER_MINUTES = 360;
-    private static final int REST_DURATION_MS = 600000;
-
-    private static final LocalTime DAILY_STOP_START = LocalTime.of(23, 30);
-    private static final LocalTime DAILY_STOP_END = LocalTime.of(1, 0);
-
     public static void main(String[] args) {
+
+        System.out.println("🚀 Selenium session started");
 
         String user = System.getenv("GAME_ID");
         String pass = System.getenv("GAME_PASSWORD");
@@ -31,26 +23,21 @@ public class Main {
             throw new RuntimeException("Missing credentials");
         }
 
-        if (isInShutdownWindow()) {
-            System.out.println("Inside shutdown window. Exiting.");
-            return;
-        }
-
         WebDriverManager.chromedriver().setup();
 
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless=new", "--no-sandbox",
-                "--disable-dev-shm-usage", "--disable-gpu");
+        options.addArguments("--headless=new");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
 
         WebDriver driver = new ChromeDriver(options);
 
-        Instant startTime = Instant.now();
-        Instant lastRestTime = Instant.now();
+        Instant start = Instant.now();
 
         try {
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
-            // 🔐 LOGIN
+            // ---------------- LOGIN ----------------
             driver.get("https://elem.cards/login/");
             sleep(2000);
 
@@ -59,141 +46,110 @@ public class Main {
             driver.findElement(By.cssSelector("input[type='submit']")).click();
 
             sleep(4000);
+            System.out.println("🔓 Login completed");
 
-            // 🔥 SAFE INVASION CLICK (NO WAIT FOR CLICKABLE)
-            tryClickInvasion(driver);
+            // ---------------- OPEN PAGE ----------------
+            List<WebElement> urfin = driver.findElements(By.cssSelector("a.urfin"));
+            if (!urfin.isEmpty()) {
+                urfin.get(0).click();
+                System.out.println("📍 Entered section");
+            }
 
             sleep(3000);
 
-            while (!Thread.currentThread().isInterrupted()) {
+            // ---------------- MAIN LOOP ----------------
+            while (true) {
 
-                long loopStart = System.currentTimeMillis();
-
-                if (shouldStopNow(startTime)) {
-                    System.out.println("Stopping cleanly...");
+                long mins = Duration.between(start, Instant.now()).toMinutes();
+                if (mins > 300) {
+                    System.out.println("⛔ Time limit reached");
                     break;
                 }
 
-                long sinceLastRest = Duration.between(lastRestTime, Instant.now()).toMinutes();
-                if (sinceLastRest >= REST_AFTER_MINUTES) {
-                    System.out.println("Taking rest...");
-                    sleep(REST_DURATION_MS);
-                    lastRestTime = Instant.now();
-                }
+                System.out.println("🔍 Scanning actions...");
 
-                // -------- collect attack links --------
-                List<String> attackLinks = new ArrayList<>();
+                // Example: collect action links safely
+                List<WebElement> actions = driver.findElements(By.cssSelector("a[href*='attack']"));
 
-                for (WebElement e : driver.findElements(By.cssSelector("a[href*='attack0']")))
-                    attackLinks.add(e.getAttribute("href"));
-
-                for (WebElement e : driver.findElements(By.cssSelector("a[href*='attack1']")))
-                    attackLinks.add(e.getAttribute("href"));
-
-                for (WebElement e : driver.findElements(By.cssSelector("a[href*='attack2']")))
-                    attackLinks.add(e.getAttribute("href"));
-
-                // -------- visit attacks --------
-                for (String link : attackLinks) {
-                    if (Thread.currentThread().isInterrupted()) break;
+                for (WebElement a : actions) {
                     try {
-                        driver.get(link);
+                        a.click();
                         sleep(800);
                     } catch (Exception ignored) {}
                 }
 
-                // -------- attack --------
-                clickIfExists(driver, "//span[text()='Attack']", 1200);
-                handleGoldAttack(driver);
-                clickIfExists(driver, "//span[text()='Next']", 1200);
-
-                // -------- loop timing --------
-                long elapsed = System.currentTimeMillis() - loopStart;
-                long remaining = 10000 - elapsed;
-                if (remaining > 0) sleep((int) remaining);
+                clickIfExists(driver, "//span[text()='Attack']");
+                handleGoldStyleAction(driver);   // 💰 example pattern
+                clickIfExists(driver, "//span[text()='Next']");
 
                 driver.navigate().refresh();
+                sleep(4000);
             }
 
         } catch (Exception e) {
-            System.out.println("Bot stopped: " + e.getMessage());
+            System.out.println("❌ Error: " + e.getMessage());
         } finally {
-            System.out.println("Closing driver...");
-            try { driver.quit(); } catch (Exception ignored) {}
+            System.out.println("🧹 Closing browser");
+            driver.quit();
         }
     }
 
-    // 🔥 SAFE INVASION CLICK (IMPORTANT FIX)
-    public static void tryClickInvasion(WebDriver driver) {
+    // ---------------- GOLD-LIKE ACTION HANDLER (GENERIC PATTERN) ----------------
+    public static void handleGoldStyleAction(WebDriver driver) {
         try {
-            List<WebElement> btn = driver.findElements(By.cssSelector("a.urfin"));
+            List<WebElement> gold = driver.findElements(
+                    By.xpath("//*[contains(text(),'Attack now for')]")
+            );
 
-            if (!btn.isEmpty()) {
-                WebElement el = btn.get(0);
+            if (!gold.isEmpty()) {
 
-                String cooldownText = "";
-                List<WebElement> cd = driver.findElements(By.id("urfin_cooldown"));
-                if (!cd.isEmpty()) {
-                    cooldownText = cd.get(0).getText();
-                }
+                String text = gold.get(0).getText();
+                String number = text.replaceAll("[^0-9]", "");
 
-                // Only click if NOT on cooldown
-                if (cooldownText.contains("0") || cooldownText.contains("Ready")) {
-                    el.click();
-                    System.out.println("Invasion clicked");
-                } else {
-                    System.out.println("Invasion on cooldown: " + cooldownText);
+                if (!number.isEmpty()) {
+                    int cost = Integer.parseInt(number);
+
+                    System.out.println("💰 Detected cost: " + cost);
+
+                    if (cost <= 10) {
+                        gold.get(0).click();
+                        sleep(1000);
+
+                        List<WebElement> yes = driver.findElements(
+                                By.xpath("//*[text()='Yes!']")
+                        );
+
+                        if (!yes.isEmpty()) {
+                            yes.get(0).click();
+                        }
+
+                        System.out.println("✅ Action confirmed");
+                    }
                 }
             }
+
         } catch (Exception e) {
-            System.out.println("Invasion click failed: " + e.getMessage());
+            System.out.println("Gold action error: " + e.getMessage());
         }
     }
 
-    // ---------------- helpers ----------------
-
-    public static boolean shouldStopNow(Instant startTime) {
-        long mins = Duration.between(startTime, Instant.now()).toMinutes();
-        return mins >= MAX_RUN_MINUTES || isInShutdownWindow();
-    }
-
-    public static boolean isInShutdownWindow() {
-        LocalTime now = LocalTime.now(ZoneOffset.UTC);
-        return !now.isBefore(DAILY_STOP_START) || now.isBefore(DAILY_STOP_END);
-    }
-
-    public static void clickIfExists(WebDriver driver, String xpath, int delay) {
-        List<WebElement> el = driver.findElements(By.xpath(xpath));
-        if (!el.isEmpty()) {
-            try {
+    // ---------------- SAFE CLICK ----------------
+    public static void clickIfExists(WebDriver driver, String xpath) {
+        try {
+            List<WebElement> el = driver.findElements(By.xpath(xpath));
+            if (!el.isEmpty()) {
                 el.get(0).click();
-                sleep(delay);
-            } catch (Exception ignored) {}
-        }
+                sleep(1000);
+            }
+        } catch (Exception ignored) {}
     }
 
-    public static void handleGoldAttack(WebDriver driver) {
-        List<WebElement> gold = driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
-        if (!gold.isEmpty()) {
-            try {
-                String num = gold.get(0).getText().replaceAll("[^0-9]", "");
-                if (!num.isEmpty() && Integer.parseInt(num) <= 10) {
-                    gold.get(0).click();
-                    sleep(1200);
-
-                    List<WebElement> yes = driver.findElements(By.xpath("//span[text()='Yes!']"));
-                    if (!yes.isEmpty()) yes.get(0).click();
-                }
-            } catch (Exception ignored) {}
-        }
-    }
-
+    // ---------------- SLEEP ----------------
     public static void sleep(int ms) {
         try {
             Thread.sleep(ms);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted");
         }
     }
 }
