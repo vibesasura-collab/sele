@@ -3,8 +3,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 
@@ -34,7 +32,7 @@ public class Main {
         }
 
         if (isInShutdownWindow()) {
-            System.out.println("Inside daily shutdown window. Exiting.");
+            System.out.println("Inside shutdown window. Exiting.");
             return;
         }
 
@@ -45,7 +43,6 @@ public class Main {
                 "--disable-dev-shm-usage", "--disable-gpu");
 
         WebDriver driver = new ChromeDriver(options);
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
         Instant startTime = Instant.now();
         Instant lastRestTime = Instant.now();
@@ -61,14 +58,10 @@ public class Main {
             driver.findElement(By.name("ppass")).sendKeys(pass);
             driver.findElement(By.cssSelector("input[type='submit']")).click();
 
-            // ✅ KEEP OLD WORKING STYLE
             sleep(4000);
 
-            // ✅ FIXED: wait + click instead of driver.get()
-            WebElement urfinBtn = wait.until(
-                ExpectedConditions.elementToBeClickable(By.cssSelector("a.urfin"))
-            );
-            urfinBtn.click();
+            // 🔥 SAFE INVASION CLICK (NO WAIT FOR CLICKABLE)
+            tryClickInvasion(driver);
 
             sleep(3000);
 
@@ -77,13 +70,13 @@ public class Main {
                 long loopStart = System.currentTimeMillis();
 
                 if (shouldStopNow(startTime)) {
-                    System.out.println("Stopping cleanly before timeout...");
+                    System.out.println("Stopping cleanly...");
                     break;
                 }
 
                 long sinceLastRest = Duration.between(lastRestTime, Instant.now()).toMinutes();
                 if (sinceLastRest >= REST_AFTER_MINUTES) {
-                    System.out.println("Taking 10 min rest...");
+                    System.out.println("Taking rest...");
                     sleep(REST_DURATION_MS);
                     lastRestTime = Instant.now();
                 }
@@ -110,11 +103,11 @@ public class Main {
                 }
 
                 // -------- attack --------
-                clickIfExists(driver, "//span[text()='Attack']", 1500);
+                clickIfExists(driver, "//span[text()='Attack']", 1200);
                 handleGoldAttack(driver);
-                clickIfExists(driver, "//span[text()='Next']", 1500);
+                clickIfExists(driver, "//span[text()='Next']", 1200);
 
-                // -------- maintain 10 sec loop --------
+                // -------- loop timing --------
                 long elapsed = System.currentTimeMillis() - loopStart;
                 long remaining = 10000 - elapsed;
                 if (remaining > 0) sleep((int) remaining);
@@ -127,6 +120,33 @@ public class Main {
         } finally {
             System.out.println("Closing driver...");
             try { driver.quit(); } catch (Exception ignored) {}
+        }
+    }
+
+    // 🔥 SAFE INVASION CLICK (IMPORTANT FIX)
+    public static void tryClickInvasion(WebDriver driver) {
+        try {
+            List<WebElement> btn = driver.findElements(By.cssSelector("a.urfin"));
+
+            if (!btn.isEmpty()) {
+                WebElement el = btn.get(0);
+
+                String cooldownText = "";
+                List<WebElement> cd = driver.findElements(By.id("urfin_cooldown"));
+                if (!cd.isEmpty()) {
+                    cooldownText = cd.get(0).getText();
+                }
+
+                // Only click if NOT on cooldown
+                if (cooldownText.contains("0") || cooldownText.contains("Ready")) {
+                    el.click();
+                    System.out.println("Invasion clicked");
+                } else {
+                    System.out.println("Invasion on cooldown: " + cooldownText);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Invasion click failed: " + e.getMessage());
         }
     }
 
