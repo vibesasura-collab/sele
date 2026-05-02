@@ -14,7 +14,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        System.out.println("🚀 Bot Started");
+        System.out.println("🚀 Selenium Bot Started");
 
         String user = System.getenv("GAME_ID");
         String pass = System.getenv("GAME_PASSWORD");
@@ -29,9 +29,9 @@ public class Main {
         options.addArguments("--headless=new");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--disable-gpu");
 
         WebDriver driver = new ChromeDriver(options);
+
         Instant start = Instant.now();
 
         try {
@@ -46,19 +46,17 @@ public class Main {
             driver.findElement(By.cssSelector("input[type='submit']")).click();
 
             sleep(4000);
-            System.out.println("🔓 Login completed");
+            System.out.println("🔓 Login complete");
 
-            // ---------------- URFIN PAGE ----------------
+            // ---------------- ENTER URFIN ----------------
             List<WebElement> urfin = driver.findElements(By.cssSelector("a.urfin"));
 
             if (!urfin.isEmpty()) {
                 urfin.get(0).click();
                 sleep(5000);
-                driver.navigate().refresh();
-                sleep(3000);
             }
 
-            System.out.println("📍 Entered urfin");
+            System.out.println("📍 In urfin page");
 
             // ---------------- MAIN LOOP ----------------
             while (true) {
@@ -69,15 +67,15 @@ public class Main {
                     break;
                 }
 
-                System.out.println("🔍 Scanning...");
+                System.out.println("🔍 Checking state...");
 
-                // ⚔️ STEP 1: NORMAL ATTACKS
                 List<WebElement> attacks =
                         driver.findElements(By.cssSelector("a[href*='attack']"));
 
+                // ---------------- CASE 1: NORMAL ATTACKS ----------------
                 if (!attacks.isEmpty()) {
 
-                    System.out.println("⚔️ Normal attacks found: " + attacks.size());
+                    System.out.println("⚔️ Boss/targets available");
 
                     for (WebElement a : attacks) {
                         try {
@@ -89,12 +87,52 @@ public class Main {
                     click(driver, "//span[text()='Attack']");
                     click(driver, "//span[text()='Next']");
 
-                } else {
+                }
 
-                    // 💰 STEP 2: GOLD ONLY IF NO NORMAL ATTACKS
-                    System.out.println("💰 No normal attacks → checking gold");
+                // ---------------- CASE 2: GOLD (ONLY IF NO NORMAL) ----------------
+                else {
 
-                    handleGold(driver);
+                    List<WebElement> gold =
+                            driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
+
+                    if (!gold.isEmpty()) {
+
+                        String text = gold.get(0).getText();
+                        String num = text.replaceAll("[^0-9]", "");
+
+                        if (!num.isEmpty()) {
+                            int cost = Integer.parseInt(num);
+
+                            System.out.println("💰 Gold cost: " + cost);
+
+                            if (cost <= 10) {
+                                gold.get(0).click();
+                                sleep(1000);
+
+                                List<WebElement> yes =
+                                        driver.findElements(By.xpath("//span[text()='Yes!']"));
+
+                                if (!yes.isEmpty()) yes.get(0).click();
+
+                                System.out.println("✅ Gold attack used");
+                            } else {
+                                System.out.println("❌ Gold too expensive");
+                            }
+                        }
+
+                    } else {
+
+                        // ---------------- CASE 3: NO BOSS (COOLDOWN) ----------------
+                        System.out.println("⏳ No boss available");
+
+                        try {
+                            WebElement cd = driver.findElement(By.id("urfin_cooldown"));
+                            System.out.println("Cooldown: " + cd.getText());
+                        } catch (Exception ignored) {}
+
+                        // smart wait (no spam refresh)
+                        sleep(60000);
+                    }
                 }
 
                 driver.navigate().refresh();
@@ -106,46 +144,6 @@ public class Main {
         } finally {
             System.out.println("🧹 Closing driver");
             driver.quit();
-        }
-    }
-
-    // ---------------- GOLD HANDLER ----------------
-    public static void handleGold(WebDriver driver) {
-
-        try {
-            List<WebElement> gold =
-                    driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
-
-            if (!gold.isEmpty()) {
-
-                String text = gold.get(0).getText();
-                String num = text.replaceAll("[^0-9]", "");
-
-                if (!num.isEmpty()) {
-                    int cost = Integer.parseInt(num);
-
-                    System.out.println("💰 Gold cost: " + cost);
-
-                    if (cost <= 10) {
-                        gold.get(0).click();
-                        sleep(1000);
-
-                        List<WebElement> yes =
-                                driver.findElements(By.xpath("//span[text()='Yes!']"));
-
-                        if (!yes.isEmpty()) {
-                            yes.get(0).click();
-                        }
-
-                        System.out.println("✅ Gold attack executed");
-                    } else {
-                        System.out.println("❌ Gold too expensive");
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            System.out.println("Gold error: " + e.getMessage());
         }
     }
 
