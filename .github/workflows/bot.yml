@@ -6,19 +6,19 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360   # max allowed (~6 hours)
+    timeout-minutes: 360   # ~6 hours max
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Install Chrome
+      - name: Install Google Chrome
         run: |
           sudo apt update
           sudo apt install -y wget curl unzip gnupg
@@ -27,16 +27,19 @@ jobs:
           sudo apt update
           sudo apt install -y google-chrome-stable
 
-      # 🔥 MAIN LOOP (IMPORTANT)
-      - name: Run bot continuously
+      - name: Build project
+        run: mvn -B clean compile
+
+      # 🔥 MAIN LOOP
+      - name: Run Selenium Bot continuously
         env:
           GAME_ID: ${{ secrets.GAME_ID }}
           GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
         run: |
           while true
           do
-            echo "Starting bot run..."
-            mvn -B compile exec:java -Dexec.mainClass=Main
-            echo "Bot finished. Restarting in 5 seconds..."
+            echo "🚀 Starting Selenium Bot..."
+            mvn -B exec:java -Dexec.mainClass=Main
+            echo "🔁 Bot finished. Restarting in 5 seconds..."
             sleep 5
           done
