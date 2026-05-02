@@ -1,4 +1,3 @@
-
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -46,7 +45,7 @@ public class Main {
                 "--disable-dev-shm-usage", "--disable-gpu");
 
         WebDriver driver = new ChromeDriver(options);
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15)); // ✅ added
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
         Instant startTime = Instant.now();
         Instant lastRestTime = Instant.now();
@@ -62,16 +61,12 @@ public class Main {
             driver.findElement(By.name("ppass")).sendKeys(pass);
             driver.findElement(By.cssSelector("input[type='submit']")).click();
 
-            // ✅ WAIT after login (IMPORTANT FIX)
-            wait.until(ExpectedConditions.urlContains("cards")); 
-            // If this fails, replace with any element visible after login
+            // ✅ KEEP OLD WORKING STYLE
+            sleep(4000);
 
-            // 👉 OPEN PAGE AFTER LOGIN
-            driver.get("https://elem.cards/urfin/");
-
-            // ✅ WAIT for element before clicking (MAIN FIX)
+            // ✅ FIXED: wait + click instead of driver.get()
             WebElement urfinBtn = wait.until(
-                ExpectedConditions.presenceOfElementLocated(By.cssSelector("a.urfin"))
+                ExpectedConditions.elementToBeClickable(By.cssSelector("a.urfin"))
             );
             urfinBtn.click();
 
@@ -119,6 +114,7 @@ public class Main {
                 handleGoldAttack(driver);
                 clickIfExists(driver, "//span[text()='Next']", 1500);
 
+                // -------- maintain 10 sec loop --------
                 long elapsed = System.currentTimeMillis() - loopStart;
                 long remaining = 10000 - elapsed;
                 if (remaining > 0) sleep((int) remaining);
