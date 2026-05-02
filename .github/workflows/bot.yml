@@ -6,7 +6,7 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360   # ~6 hours max
+    timeout-minutes: 360
 
     steps:
       - name: Checkout repository
@@ -18,28 +18,22 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Install Google Chrome
+      - name: Install Chrome
         run: |
           sudo apt update
           sudo apt install -y wget curl unzip gnupg
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/googlechrome.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
           sudo apt update
           sudo apt install -y google-chrome-stable
 
-      - name: Build project
-        run: mvn -B clean compile
-
-      # 🔥 MAIN LOOP
-      - name: Run Selenium Bot continuously
+      - name: Run Bot
         env:
           GAME_ID: ${{ secrets.GAME_ID }}
           GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
         run: |
-          while true
-          do
-            echo "🚀 Starting Selenium Bot..."
-            mvn -B exec:java -Dexec.mainClass=Main
-            echo "🔁 Bot finished. Restarting in 5 seconds..."
-            sleep 5
-          done
+          mvn -B clean compile
+          mvn -B exec:java \
+            -Dexec.mainClass=Main \
+            -Dexec.classpathScope=compile \
+            -Dexec.cleanupDaemonThreads=false
