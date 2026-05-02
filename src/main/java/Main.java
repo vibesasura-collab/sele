@@ -14,7 +14,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        System.out.println("🚀 Selenium Bot Started");
+        System.out.println("🚀 Selenium Session Started");
 
         String user = System.getenv("GAME_ID");
         String pass = System.getenv("GAME_PASSWORD");
@@ -31,11 +31,10 @@ public class Main {
         options.addArguments("--disable-dev-shm-usage");
 
         WebDriver driver = new ChromeDriver(options);
-
         Instant start = Instant.now();
 
         try {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(4));
 
             // ---------------- LOGIN ----------------
             driver.get("https://elem.cards/login/");
@@ -53,7 +52,7 @@ public class Main {
 
             if (!urfin.isEmpty()) {
                 urfin.get(0).click();
-                sleep(5000);
+                sleep(4000);
             }
 
             System.out.println("📍 In urfin page");
@@ -69,29 +68,30 @@ public class Main {
 
                 System.out.println("🔍 Checking state...");
 
+                // ---------------- BATTLE CARDS ----------------
                 List<WebElement> attacks =
-                        driver.findElements(By.cssSelector("a[href*='attack']"));
+                        driver.findElements(By.cssSelector("div.fb_path a.card"));
 
-                // ---------------- CASE 1: NORMAL ATTACKS ----------------
                 if (!attacks.isEmpty()) {
 
-                    System.out.println("⚔️ Boss/targets available");
+                    System.out.println("⚔️ Battle cards found: " + attacks.size());
 
-                    for (WebElement a : attacks) {
+                    for (WebElement card : attacks) {
                         try {
-                            a.click();
-                            sleep(700);
+                            card.click();
+                            sleep(800);
                         } catch (Exception ignored) {}
                     }
 
                     click(driver, "//span[text()='Attack']");
                     click(driver, "//span[text()='Next']");
 
-                }
+                    driver.navigate().refresh();
+                    sleep(2000);
 
-                // ---------------- CASE 2: GOLD (ONLY IF NO NORMAL) ----------------
-                else {
+                } else {
 
+                    // ---------------- GOLD CHECK ----------------
                     List<WebElement> gold =
                             driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
 
@@ -112,9 +112,11 @@ public class Main {
                                 List<WebElement> yes =
                                         driver.findElements(By.xpath("//span[text()='Yes!']"));
 
-                                if (!yes.isEmpty()) yes.get(0).click();
+                                if (!yes.isEmpty()) {
+                                    yes.get(0).click();
+                                }
 
-                                System.out.println("✅ Gold attack used");
+                                System.out.println("✅ Gold used");
                             } else {
                                 System.out.println("❌ Gold too expensive");
                             }
@@ -122,21 +124,21 @@ public class Main {
 
                     } else {
 
-                        // ---------------- CASE 3: NO BOSS (COOLDOWN) ----------------
-                        System.out.println("⏳ No boss available");
+                        // ---------------- COOLDOWN / NO BOSS ----------------
+                        System.out.println("⏳ No battle available");
 
                         try {
-                            WebElement cd = driver.findElement(By.id("urfin_cooldown"));
+                            WebElement cd =
+                                    driver.findElement(By.id("urfin_cooldown"));
+
                             System.out.println("Cooldown: " + cd.getText());
+
                         } catch (Exception ignored) {}
 
-                        // smart wait (no spam refresh)
-                        sleep(60000);
+                        sleep(5000);
+                        driver.navigate().refresh();
                     }
                 }
-
-                driver.navigate().refresh();
-                sleep(4000);
             }
 
         } catch (Exception e) {
@@ -153,7 +155,7 @@ public class Main {
             List<WebElement> el = driver.findElements(By.xpath(xpath));
             if (!el.isEmpty()) {
                 el.get(0).click();
-                sleep(1000);
+                sleep(800);
             }
         } catch (Exception ignored) {}
     }
