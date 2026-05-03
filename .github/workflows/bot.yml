@@ -6,7 +6,7 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360   # GitHub max (~6 hrs)
+    timeout-minutes: 360
 
     steps:
       - name: Checkout repository
@@ -27,21 +27,24 @@ jobs:
           sudo apt update
           sudo apt install -y google-chrome-stable
 
-      # 🔥 CONTROLLED LOOP
-      - name: Run bot in 6hr cycle
+      - name: Run Bot Loop
         env:
           GAME_ID: ${{ secrets.GAME_ID }}
           GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
         run: |
+          mvn -B clean compile
+
           while true
           do
-            echo "🚀 Starting bot (5h 50m run)..."
+            echo "🚀 Starting bot run..."
 
-            timeout 21000 mvn -B compile exec:java -Dexec.mainClass=Main || true
-            # 21000 sec = 5h 50m
+            mvn -B exec:java \
+              -Dexec.mainClass=Main \
+              -Dexec.classpathScope=compile \
+              -Dexec.cleanupDaemonThreads=false
 
-            echo "😴 Resting for 10 minutes..."
+            echo "😴 Resting 10 minutes..."
             sleep 600
 
-            echo "🔁 Restarting cycle..."
+            echo "🔁 Restarting..."
           done
