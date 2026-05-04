@@ -24,12 +24,8 @@ jobs:
           sudo apt update
           sudo apt install -y google-chrome-stable
 
-      - name: Build project
-        run: mvn clean package
-
-      - name: Run bot
+      - name: Run Bot with Maven
         env:
           GAME_ID: ${{ secrets.GAME_ID }}
           GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
-        run: |
-          java -cp target/*.jar Main
+        run: mvn compile exec:java -Dexec.mainClass=Main
