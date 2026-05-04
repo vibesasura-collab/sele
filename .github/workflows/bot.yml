@@ -12,37 +12,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Install Chrome
         run: |
           sudo apt update
-          sudo apt install -y wget curl unzip gnupg
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/googlechrome.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt update
           sudo apt install -y google-chrome-stable
 
-      - name: Run Bot Loop
+      - name: Build and Run Bot
         env:
           GAME_ID: ${{ secrets.GAME_ID }}
           GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
         run: |
-          mvn -B clean compile
-
-          while true
-          do
-            echo "🚀 Running bot..."
-
-            mvn -B exec:java \
-              -Dexec.mainClass=Main \
-              -Dexec.classpathScope=compile \
-              -Dexec.cleanupDaemonThreads=false
-
-            echo "🔁 Restarting in 5 seconds..."
-            sleep 5
-          done
+          javac Main.java
+          java Main
