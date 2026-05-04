@@ -17,16 +17,19 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: maven
 
       - name: Install Chrome
         run: |
           sudo apt update
           sudo apt install -y google-chrome-stable
 
-      - name: Build and Run Bot
+      - name: Build project
+        run: mvn clean package
+
+      - name: Run bot
         env:
           GAME_ID: ${{ secrets.GAME_ID }}
           GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
         run: |
-          javac Main.java
-          java Main
+          java -cp target/*.jar Main
