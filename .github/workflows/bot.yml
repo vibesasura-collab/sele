@@ -1,50 +1,30 @@
-name: Selenium Bot
+- name: Run Bot Loop with Time Control
+  env:
+    GAME_ID: ${{ secrets.GAME_ID }}
+    GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
+  run: |
+    mvn -B clean compile
 
-on:
-  workflow_dispatch:
+    while true
+    do
+      echo "🚀 Starting 5h 55m session..."
 
-jobs:
-  run-bot:
-    runs-on: ubuntu-latest
-    timeout-minutes: 360
+      START_TIME=$(date +%s)
+      END_TIME=$((START_TIME + 21300))  # 5 hr 55 min = 21300 sec
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      while [ $(date +%s) -lt $END_TIME ]
+      do
+        echo "▶ Running bot cycle..."
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
+        mvn -B exec:java \
+          -Dexec.mainClass=Main \
+          -Dexec.classpathScope=compile \
+          -Dexec.cleanupDaemonThreads=false
 
-      - name: Install Chrome
-        run: |
-          sudo apt update
-          sudo apt install -y wget curl unzip gnupg
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/googlechrome.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt update
-          sudo apt install -y google-chrome-stable
+        echo "🔁 Restarting bot..."
+        sleep 5
+      done
 
-      - name: Run Bot Loop
-        env:
-          GAME_ID: ${{ secrets.GAME_ID }}
-          GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
-        run: |
-          mvn -B clean compile
-
-          while true
-          do
-            echo "🚀 Starting bot run..."
-
-            mvn -B exec:java \
-              -Dexec.mainClass=Main \
-              -Dexec.classpathScope=compile \
-              -Dexec.cleanupDaemonThreads=false
-
-            echo "😴 Resting 10 minutes..."
-            sleep 600
-
-            echo "🔁 Restarting..."
-          done
+      echo "⏸ Session complete. Sleeping 10 minutes..."
+      sleep 600
+    done
