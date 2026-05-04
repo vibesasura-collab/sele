@@ -27,16 +27,22 @@ jobs:
           sudo apt update
           sudo apt install -y google-chrome-stable
 
-      - name: Run Bot
+      - name: Run Bot Loop
         env:
           GAME_ID: ${{ secrets.GAME_ID }}
           GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
         run: |
           mvn -B clean compile
 
-          echo "🚀 Starting bot..."
+          while true
+          do
+            echo "🚀 Running bot..."
 
-          mvn -B exec:java \
-            -Dexec.mainClass=Main \
-            -Dexec.classpathScope=compile \
-            -Dexec.cleanupDaemonThreads=false
+            mvn -B exec:java \
+              -Dexec.mainClass=Main \
+              -Dexec.classpathScope=compile \
+              -Dexec.cleanupDaemonThreads=false
+
+            echo "🔁 Restarting in 5 seconds..."
+            sleep 5
+          done
