@@ -2,11 +2,14 @@ name: Main
 
 on:
   workflow_dispatch:
+  schedule:
+    # Runs automatically every 6 hours
+    - cron: '0 */6 * * *'
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 350 # Kills cleanly slightly under the GitHub limit
 
     steps:
       - name: Checkout repository
