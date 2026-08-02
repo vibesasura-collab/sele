@@ -6,38 +6,19 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 public class Main {
 
-    private static final int MAX_RUN_MINUTES = 345;
-    private static final LocalTime DAILY_STOP_START = LocalTime.of(23, 30);
-    private static final LocalTime DAILY_STOP_END = LocalTime.of(1, 0);
-
-    private static final boolean TODAY_OFF = false;
-
     public static void main(String[] args) {
-
-        if (TODAY_OFF) {
-            System.out.println("Bot OFF today. Exiting.");
-            return;
-        }
 
         String user = System.getenv("GAME_ID");
         String pass = System.getenv("GAME_PASSWORD");
 
         if (user == null || user.isEmpty() || pass == null || pass.isEmpty()) {
             throw new RuntimeException("GAME_ID or GAME_PASSWORD not found in GitHub Secrets.");
-        }
-
-        if (isInShutdownWindow()) {
-            System.out.println("Inside daily shutdown window (23:30-01:00 GMT). Exiting.");
-            return;
         }
 
         WebDriverManager.chromedriver().setup();
@@ -51,7 +32,9 @@ public class Main {
 
         WebDriver driver = new ChromeDriver(options);
         Random random = new Random();
-        Instant startTime = Instant.now();
+        
+        // Tracks consecutive loops where no action was performed
+        int consecutiveIdle = 0; 
 
         try {
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
@@ -71,64 +54,43 @@ public class Main {
             while (true) {
 
                 long loopStart = System.currentTimeMillis();
-
-                if (shouldStopNow(startTime)) {
-                    System.out.println("Stopping now due to runtime limit or daily shutdown window.");
-                    break;
-                }
-
                 boolean actionPerformed = false;
 
                 // -------- Collect attack links first --------
-
                 List<String> attackLinks = new ArrayList<>();
 
                 List<WebElement> attack0 = driver.findElements(By.cssSelector("a[href*='attack0']"));
                 List<WebElement> attack1 = driver.findElements(By.cssSelector("a[href*='attack1']"));
                 List<WebElement> attack2 = driver.findElements(By.cssSelector("a[href*='attack2']"));
 
-                System.out.println(
-                        "attack0: " + attack0.size() +
-                        " | attack1: " + attack1.size() +
-                        " | attack2: " + attack2.size()
-                );
-
-                for (WebElement e : attack0) {
-                    attackLinks.add(e.getAttribute("href"));
-                }
-
-                for (WebElement e : attack1) {
-                    attackLinks.add(e.getAttribute("href"));
-                }
-
-                for (WebElement e : attack2) {
-                    attackLinks.add(e.getAttribute("href"));
+                for (WebElement e : attack0) attackLinks.add(e.getAttribute("href"));
+                for (WebElement e : attack1) attackLinks.add(e.getAttribute("href"));
+                for (WebElement e : attack2) attackLinks.add(e.getAttribute("href"));
+                
+                // If we found links, we consider the bot active
+                if (!attackLinks.isEmpty()) {
+                    actionPerformed = true;
                 }
 
                 // -------- Visit each attack --------
-
                 for (String link : attackLinks) {
                     try {
                         driver.get(link);
                         sleep(800);
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
 
                 // -------- Attack button --------
-
                 List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
                 if (!attackBtn.isEmpty()) {
                     try {
                         attackBtn.get(0).click();
                         actionPerformed = true;
                         sleep(1500);
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
 
                 // -------- Gold attack --------
-
                 List<WebElement> goldAttack = driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
                 if (!goldAttack.isEmpty()) {
                     try {
@@ -137,47 +99,58 @@ public class Main {
 
                         if (!number.isEmpty()) {
                             int cost = Integer.parseInt(number);
-
                             if (cost <= 10) {
                                 goldAttack.get(0).click();
                                 sleep(1200);
-
                                 List<WebElement> yes = driver.findElements(By.xpath("//span[text()='Yes!']"));
-                                if (!yes.isEmpty()) {
-                                    yes.get(0).click();
-                                }
-
+                                if (!yes.isEmpty()) yes.get(0).click();
                                 actionPerformed = true;
                             }
                         }
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
 
                 // -------- Next button --------
-
                 List<WebElement> nextBtn = driver.findElements(By.xpath("//span[text()='Next']"));
                 if (!nextBtn.isEmpty()) {
                     try {
                         nextBtn.get(0).click();
                         actionPerformed = true;
                         sleep(1500);
-                    } catch (Exception ignored) {
+                    } catch (Exception ignored) {}
+                }
+
+                // -------- Dynamic Waiting Logic --------
+                if (actionPerformed) {
+                    // Reset idle counter since we successfully attacked
+                    consecutiveIdle = 0; 
+                    
+                    // Standard 10-second loop
+                    long elapsed = System.currentTimeMillis() - loopStart;
+                    long remaining = 10000 - elapsed;
+                    if (remaining > 0) {
+                        sleep((int) remaining);
                     }
-                }
-
-                if (shouldStopNow(startTime)) {
-                    System.out.println("Stopping now due to runtime limit or daily shutdown window.");
-                    break;
-                }
-
-                // -------- Maintain exact 10-second loop --------
-
-                long elapsed = System.currentTimeMillis() - loopStart;
-                long remaining = 10000 - elapsed;
-
-                if (remaining > 0) {
-                    sleep((int) remaining);
+                } else {
+                    // We did nothing this loop
+                    consecutiveIdle++;
+                    int sleepTimeMs;
+                    
+                    if (consecutiveIdle >= 2) {
+                        // "No more bot" state (prolonged empty targets) -> 15-16 mins
+                        System.out.println("Sustained idle. Sleeping 15-16 minutes...");
+                        int minMs = 15 * 60 * 1000;
+                        int maxMs = 16 * 60 * 1000;
+                        sleepTimeMs = random.nextInt(maxMs - minMs + 1) + minMs;
+                    } else {
+                        // First time seeing no attacks / cost too high -> 5-6 mins
+                        System.out.println("No targets or cost > 10. Sleeping 5-6 minutes...");
+                        int minMs = 5 * 60 * 1000;
+                        int maxMs = 6 * 60 * 1000;
+                        sleepTimeMs = random.nextInt(maxMs - minMs + 1) + minMs;
+                    }
+                    
+                    sleep(sleepTimeMs);
                 }
 
                 driver.navigate().refresh();
@@ -188,16 +161,6 @@ public class Main {
         } finally {
             driver.quit();
         }
-    }
-
-    public static boolean shouldStopNow(Instant startTime) {
-        long elapsedMinutes = Duration.between(startTime, Instant.now()).toMinutes();
-        return elapsedMinutes >= MAX_RUN_MINUTES || isInShutdownWindow();
-    }
-
-    public static boolean isInShutdownWindow() {
-        LocalTime now = LocalTime.now(ZoneOffset.UTC);
-        return !now.isBefore(DAILY_STOP_START) || now.isBefore(DAILY_STOP_END);
     }
 
     public static void sleep(int ms) {
