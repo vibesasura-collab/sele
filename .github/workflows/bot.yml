@@ -1,4 +1,4 @@
-name: Selenium Bot
+name: Main
 
 on:
   workflow_dispatch:
