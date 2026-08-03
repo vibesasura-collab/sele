@@ -105,9 +105,11 @@ public class Main2 {
 
                 // Collect attack links
                 List<String> attackLinks = new ArrayList<>();
-                List<WebElement> attack0 = driver.findElements(By.cssSelector("a[href*='attack0']"));
-                List<WebElement> attack1 = driver.findElements(By.cssSelector("a[href*='attack1']"));
-                List<WebElement> attack2 = driver.findElements(By.cssSelector("a[href*='attack2']"));
+                
+                // Filter out hidden cards using :not(.chide2)
+                List<WebElement> attack0 = driver.findElements(By.cssSelector("a[href*='attack0'].card:not(.chide2)"));
+                List<WebElement> attack1 = driver.findElements(By.cssSelector("a[href*='attack1'].card:not(.chide2)"));
+                List<WebElement> attack2 = driver.findElements(By.cssSelector("a[href*='attack2'].card:not(.chide2)"));
 
                 System.out.println(
                         "attack0: " + attack0.size() +
