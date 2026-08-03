@@ -135,8 +135,9 @@ public class Main2 {
                     }
                 }
 
-                // Gold attack logic (limit 20)
-                List<WebElement> goldAttack = driver.findElements(By.xpath("//span[contains(text(),'Attack now for')]"));
+                // -------- Gold attack logic (limit 20) --------
+                // Updated to look for the Russian text string
+                List<WebElement> goldAttack = driver.findElements(By.xpath("//span[contains(text(),'Напасть сразу за')]"));
                 if (!goldAttack.isEmpty()) {
                     try {
                         String text = goldAttack.get(0).getText();
@@ -145,11 +146,14 @@ public class Main2 {
                         if (!number.isEmpty()) {
                             int cost = Integer.parseInt(number);
 
-                            if (cost <= 20) {
-                                goldAttack.get(0).click();
+                            if (cost <= 10) {
+                                // Clicking the parent <a> tag to avoid element interception issues
+                                WebElement parentLink = goldAttack.get(0).findElement(By.xpath("./ancestor::a"));
+                                parentLink.click();
                                 sleep(1200);
 
-                                List<WebElement> yes = driver.findElements(By.xpath("//span[text()='Yes!']"));
+                                // Adding coverage for Russian or English confirmation prompt
+                                List<WebElement> yes = driver.findElements(By.xpath("//span[contains(text(),'Да')] | //span[text()='Yes!']"));
                                 if (!yes.isEmpty()) {
                                     yes.get(0).click();
                                 }
