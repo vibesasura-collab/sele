@@ -1,4 +1,5 @@
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -89,6 +90,7 @@ public class Main2 {
             }
 
             int consecutiveIdle = 0;
+            JavascriptExecutor js = (JavascriptExecutor) driver;
 
             while (true) {
                 long loopStart = System.currentTimeMillis();
@@ -111,15 +113,12 @@ public class Main2 {
                 for (WebElement e : attack1) attackLinks.add(e.getAttribute("href"));
                 for (WebElement e : attack2) attackLinks.add(e.getAttribute("href"));
 
+                // FIXED: Visit ONLY the first attack link in the list for this loop iteration
                 if (!attackLinks.isEmpty()) {
-                    actionPerformed = true;
-                }
-
-                // Visit each attack link
-                for (String link : attackLinks) {
                     try {
-                        driver.get(link);
-                        sleep(800);
+                        driver.get(attackLinks.get(0));
+                        sleep(1000);
+                        actionPerformed = true;
                     } catch (Exception ignored) {
                     }
                 }
@@ -128,7 +127,7 @@ public class Main2 {
                 List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
                 if (!attackBtn.isEmpty()) {
                     try {
-                        attackBtn.get(0).click();
+                        js.executeScript("arguments[0].click();", attackBtn.get(0));
                         actionPerformed = true;
                         sleep(1500);
                     } catch (Exception ignored) {
@@ -136,7 +135,6 @@ public class Main2 {
                 }
 
                 // -------- Gold attack logic (limit 20) --------
-                // Updated to look for the Russian text string
                 List<WebElement> goldAttack = driver.findElements(By.xpath("//span[contains(text(),'Напасть сразу за')]"));
                 if (!goldAttack.isEmpty()) {
                     try {
@@ -147,15 +145,23 @@ public class Main2 {
                             int cost = Integer.parseInt(number);
 
                             if (cost <= 10) {
-                                // Clicking the parent <a> tag to avoid element interception issues
+                                // 1. Click the Gold bypass button
                                 WebElement parentLink = goldAttack.get(0).findElement(By.xpath("./ancestor::a"));
-                                parentLink.click();
-                                sleep(1200);
+                                js.executeScript("arguments[0].click();", parentLink);
+                                sleep(1500); 
 
-                                // Adding coverage for Russian or English confirmation prompt
-                                List<WebElement> yes = driver.findElements(By.xpath("//span[contains(text(),'Да')] | //span[text()='Yes!']"));
+                                // 2. Click the 'Yes'/'Да' confirmation link
+                                List<WebElement> yes = driver.findElements(By.xpath("//span[contains(text(),'Да')] | //span[contains(text(),'Yes')] | //span[text()='Yes!']"));
                                 if (!yes.isEmpty()) {
-                                    yes.get(0).click();
+                                    js.executeScript("arguments[0].click();", yes.get(0));
+                                    sleep(1500); 
+                                    
+                                    // 3. Immediately click the regular Attack button now that it's unlocked!
+                                    List<WebElement> attackBtnAfterGold = driver.findElements(By.xpath("//span[text()='Attack']"));
+                                    if (!attackBtnAfterGold.isEmpty()) {
+                                        js.executeScript("arguments[0].click();", attackBtnAfterGold.get(0));
+                                        sleep(1500);
+                                    }
                                 }
 
                                 actionPerformed = true;
@@ -169,7 +175,7 @@ public class Main2 {
                 List<WebElement> nextBtn = driver.findElements(By.xpath("//span[text()='Next']"));
                 if (!nextBtn.isEmpty()) {
                     try {
-                        nextBtn.get(0).click();
+                        js.executeScript("arguments[0].click();", nextBtn.get(0));
                         actionPerformed = true;
                         sleep(1500);
                     } catch (Exception ignored) {
