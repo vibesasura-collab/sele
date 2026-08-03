@@ -19,7 +19,6 @@ public class Main2 {
     public static void main(String[] args) {
 
         if (TODAY_OFF) {
-            System.out.println("Bot OFF today. Exiting.");
             return;
         }
 
@@ -69,7 +68,6 @@ public class Main2 {
                 submitBtns.get(0).click();
                 sleep(4000);
             } else {
-                System.out.println("Could not find login fields. Exiting.");
                 return;
             }
 
@@ -87,7 +85,6 @@ public class Main2 {
             }
 
             if (!navigated) {
-                System.out.println("Could not find a.urfin link. Exiting.");
                 return;
             }
 
@@ -97,7 +94,6 @@ public class Main2 {
                 long loopStart = System.currentTimeMillis();
 
                 if (shouldStopNow(startTime)) {
-                    System.out.println("Stopping now due to runtime limit.");
                     break;
                 }
 
@@ -110,12 +106,6 @@ public class Main2 {
                 List<WebElement> attack0 = driver.findElements(By.cssSelector("a[href*='attack0'].card:not(.chide2)"));
                 List<WebElement> attack1 = driver.findElements(By.cssSelector("a[href*='attack1'].card:not(.chide2)"));
                 List<WebElement> attack2 = driver.findElements(By.cssSelector("a[href*='attack2'].card:not(.chide2)"));
-
-                System.out.println(
-                        "attack0: " + attack0.size() +
-                        " | attack1: " + attack1.size() +
-                        " | attack2: " + attack2.size()
-                );
 
                 for (WebElement e : attack0) attackLinks.add(e.getAttribute("href"));
                 for (WebElement e : attack1) attackLinks.add(e.getAttribute("href"));
@@ -183,7 +173,6 @@ public class Main2 {
                 }
 
                 if (shouldStopNow(startTime)) {
-                    System.out.println("Stopping now due to runtime limit.");
                     break;
                 }
 
@@ -201,12 +190,10 @@ public class Main2 {
                     int sleepTimeMs;
 
                     if (consecutiveIdle >= 2) {
-                        System.out.println("No targets found twice. Sleeping 15-16 minutes...");
                         int minMs = 15 * 60 * 1000;
                         int maxMs = 16 * 60 * 1000;
                         sleepTimeMs = random.nextInt(maxMs - minMs + 1) + minMs;
                     } else {
-                        System.out.println("No targets or cost > 20. Sleeping 5-6 minutes...");
                         int minMs = 5 * 60 * 1000;
                         int maxMs = 6 * 60 * 1000;
                         sleepTimeMs = random.nextInt(maxMs - minMs + 1) + minMs;
