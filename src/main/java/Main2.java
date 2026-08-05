@@ -113,7 +113,7 @@ public class Main2 {
                 for (WebElement e : attack1) attackLinks.add(e.getAttribute("href"));
                 for (WebElement e : attack2) attackLinks.add(e.getAttribute("href"));
 
-                // FIXED: Visit ONLY the first attack link in the list for this loop iteration
+                // Visit ONLY the first attack link in the list for this loop iteration
                 if (!attackLinks.isEmpty()) {
                     try {
                         driver.get(attackLinks.get(0));
@@ -123,8 +123,8 @@ public class Main2 {
                     }
                 }
 
-                // Attack button
-                List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack']"));
+                // Attack button (Updated for bilingual support)
+                List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack'] | //span[text()='Напасть']"));
                 if (!attackBtn.isEmpty()) {
                     try {
                         js.executeScript("arguments[0].click();", attackBtn.get(0));
@@ -156,8 +156,8 @@ public class Main2 {
                                     js.executeScript("arguments[0].click();", yes.get(0));
                                     sleep(1500); 
                                     
-                                    // 3. Immediately click the regular Attack button now that it's unlocked!
-                                    List<WebElement> attackBtnAfterGold = driver.findElements(By.xpath("//span[text()='Attack']"));
+                                    // 3. Immediately click the regular Attack button now that it's unlocked! (Updated for bilingual support)
+                                    List<WebElement> attackBtnAfterGold = driver.findElements(By.xpath("//span[text()='Attack'] | //span[text()='Напасть']"));
                                     if (!attackBtnAfterGold.isEmpty()) {
                                         js.executeScript("arguments[0].click();", attackBtnAfterGold.get(0));
                                         sleep(1500);
