@@ -1,14 +1,13 @@
+import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -52,13 +51,12 @@ public class Main2 {
         Instant startTime = Instant.now();
 
         try {
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
-            // Updated URL for elem.mobi
+            // 1. Login Block
             driver.get("https://elem.mobi/login/");
             sleep(2000);
 
-            // Crash-proof login block
             List<WebElement> userInputs = driver.findElements(By.name("plogin"));
             List<WebElement> passInputs = driver.findElements(By.name("ppass"));
             List<WebElement> submitBtns = driver.findElements(By.cssSelector("input[type='submit']"));
@@ -67,151 +65,130 @@ public class Main2 {
                 userInputs.get(0).sendKeys(user);
                 passInputs.get(0).sendKeys(pass);
                 submitBtns.get(0).click();
-                sleep(4000);
+                sleep(3000);
             } else {
                 return;
             }
 
-            // Crash-proof urf.in click with retries
+            // 2. Navigate to Invasion section (/urfin/)
             boolean navigated = false;
             for (int attempt = 1; attempt <= 5; attempt++) {
-                List<WebElement> urfinLinks = driver.findElements(By.cssSelector("a.urfin"));
+                List<WebElement> urfinLinks = driver.findElements(By.cssSelector("a.urfin, a[href*='/urfin/']"));
                 if (!urfinLinks.isEmpty()) {
                     urfinLinks.get(0).click();
                     navigated = true;
-                    sleep(3000);
+                    sleep(2000);
                     break;
                 }
-                sleep(2000);
+                sleep(1000);
             }
 
             if (!navigated) {
                 return;
             }
 
-            int consecutiveIdle = 0;
             JavascriptExecutor js = (JavascriptExecutor) driver;
 
             while (true) {
-                long loopStart = System.currentTimeMillis();
-
                 if (shouldStopNow(startTime)) {
                     break;
                 }
 
-                boolean actionPerformed = false;
-
-                // Collect attack links
-                List<String> attackLinks = new ArrayList<>();
-                
-                // Filter out hidden cards using :not(.chide2)
-                List<WebElement> attack0 = driver.findElements(By.cssSelector("a[href*='attack0'].card:not(.chide2)"));
-                List<WebElement> attack1 = driver.findElements(By.cssSelector("a[href*='attack1'].card:not(.chide2)"));
-                List<WebElement> attack2 = driver.findElements(By.cssSelector("a[href*='attack2'].card:not(.chide2)"));
-
-                for (WebElement e : attack0) attackLinks.add(e.getAttribute("href"));
-                for (WebElement e : attack1) attackLinks.add(e.getAttribute("href"));
-                for (WebElement e : attack2) attackLinks.add(e.getAttribute("href"));
-
-                // Visit ONLY the first attack link in the list for this loop iteration
-                if (!attackLinks.isEmpty()) {
+                // 3. Click initial "Напасть" (Start) button if present
+                List<WebElement> startBtns = driver.findElements(By.xpath("//a[contains(@href, '/urfin/start/') and not(contains(@class, 'orange'))]"));
+                if (!startBtns.isEmpty()) {
                     try {
-                        driver.get(attackLinks.get(0));
-                        sleep(1000);
-                        actionPerformed = true;
-                    } catch (Exception ignored) {
-                    }
-                }
-
-                // Attack button (Updated for bilingual support)
-                List<WebElement> attackBtn = driver.findElements(By.xpath("//span[text()='Attack'] | //span[text()='Напасть']"));
-                if (!attackBtn.isEmpty()) {
-                    try {
-                        js.executeScript("arguments[0].click();", attackBtn.get(0));
-                        actionPerformed = true;
+                        js.executeScript("arguments[0].click();", startBtns.get(0));
                         sleep(1500);
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
 
-                // -------- Gold attack logic (limit 20) --------
-                List<WebElement> goldAttack = driver.findElements(By.xpath("//span[contains(text(),'Напасть сразу за')]"));
-                if (!goldAttack.isEmpty()) {
-                    try {
-                        String text = goldAttack.get(0).getText();
-                        String number = text.replaceAll("[^0-9]", "");
+                // XPath for attack0, attack1, attack2 excluding hide2 / chide2 in href or class
+                String attackXPath = "//a[(contains(@href, '/urfin/battle/attack0/') or " +
+                        "contains(@href, '/urfin/battle/attack1/') or " +
+                        "contains(@href, '/urfin/battle/attack2/')) and " +
+                        "not(contains(@href, 'hide2')) and not(contains(@href, 'chide2')) and " +
+                        "not(contains(@class, 'hide2')) and not(contains(@class, 'chide2'))]";
 
-                        if (!number.isEmpty()) {
-                            int cost = Integer.parseInt(number);
+                // 4. Attack Loop with 10-second double-check verification (checked twice)
+                while (true) {
+                    List<WebElement> attacks = driver.findElements(By.xpath(attackXPath));
 
-                            if (cost <= 10) {
-                                // 1. Click the Gold bypass button
-                                WebElement parentLink = goldAttack.get(0).findElement(By.xpath("./ancestor::a"));
-                                js.executeScript("arguments[0].click();", parentLink);
-                                sleep(1500); 
+                    if (!attacks.isEmpty()) {
+                        try {
+                            js.executeScript("arguments[0].click();", attacks.get(0));
+                            sleep(1500);
+                        } catch (Exception ignored) {}
+                    } else {
+                        // Double-check verification: wait 10 seconds and re-check twice
+                        boolean foundOnRecheck = false;
+                        for (int recheck = 1; recheck <= 2; recheck++) {
+                            sleep(10000); // Wait 10 seconds
+                            driver.navigate().refresh();
+                            sleep(1000);
 
-                                // 2. Click the 'Yes'/'Да' confirmation link
-                                List<WebElement> yes = driver.findElements(By.xpath("//span[contains(text(),'Да')] | //span[contains(text(),'Yes')] | //span[text()='Yes!']"));
-                                if (!yes.isEmpty()) {
-                                    js.executeScript("arguments[0].click();", yes.get(0));
-                                    sleep(1500); 
-                                    
-                                    // 3. Immediately click the regular Attack button now that it's unlocked! (Updated for bilingual support)
-                                    List<WebElement> attackBtnAfterGold = driver.findElements(By.xpath("//span[text()='Attack'] | //span[text()='Напасть']"));
-                                    if (!attackBtnAfterGold.isEmpty()) {
-                                        js.executeScript("arguments[0].click();", attackBtnAfterGold.get(0));
-                                        sleep(1500);
-                                    }
-                                }
-
-                                actionPerformed = true;
+                            List<WebElement> recheckAttacks = driver.findElements(By.xpath(attackXPath));
+                            if (!recheckAttacks.isEmpty()) {
+                                foundOnRecheck = true;
+                                break;
                             }
                         }
-                    } catch (Exception ignored) {
+
+                        if (!foundOnRecheck) {
+                            break; // Exit attack loop when confirmed empty twice
+                        }
                     }
                 }
 
-                // Next button
-                List<WebElement> nextBtn = driver.findElements(By.xpath("//span[text()='Next']"));
-                if (!nextBtn.isEmpty()) {
+                // 5. Click "Далее" (Next) button
+                List<WebElement> nextBtns = driver.findElements(By.xpath("//a[contains(@href, '/urfin/')]//span[contains(text(), 'Далее')] | //span[contains(text(), 'Далее')]"));
+                if (!nextBtns.isEmpty()) {
                     try {
-                        js.executeScript("arguments[0].click();", nextBtn.get(0));
-                        actionPerformed = true;
+                        js.executeScript("arguments[0].click();", nextBtns.get(0));
                         sleep(1500);
-                    } catch (Exception ignored) {
-                    }
+                    } catch (Exception ignored) {}
                 }
 
-                if (shouldStopNow(startTime)) {
-                    break;
+                // 6. Gold Cost Check for Immediate Attack ("Напасть сразу за ...")
+                List<WebElement> goldBtnSpans = driver.findElements(By.xpath("//a[contains(@href, '/urfin/start/')]//span[contains(text(), 'Напасть сразу за')] | //span[contains(text(), 'Напасть сразу за')]"));
+
+                if (!goldBtnSpans.isEmpty()) {
+                    try {
+                        String text = goldBtnSpans.get(0).getText();
+                        String digits = text.replaceAll("[^0-9]", "");
+
+                        if (!digits.isEmpty()) {
+                            int goldCost = Integer.parseInt(digits);
+
+                            if (goldCost <= 20) {
+                                // Click gold attack button
+                                WebElement parentLink = goldBtnSpans.get(0).findElement(By.xpath("./ancestor::a"));
+                                js.executeScript("arguments[0].click();", parentLink);
+                                sleep(1500);
+
+                                // Click confirmation "Да!"
+                                List<WebElement> confirmBtns = driver.findElements(By.xpath("//a[contains(@href, '/urfin/start/confirmed/')] | //span[text()='Да!']"));
+                                if (!confirmBtns.isEmpty()) {
+                                    js.executeScript("arguments[0].click();", confirmBtns.get(0));
+                                    sleep(1500);
+                                }
+
+                                continue; // Loop back to attack cycle
+                            } else {
+                                // Gold cost > 20: Sleep for 16-20 minutes
+                                int sleepMinutes = 16 + random.nextInt(5); // Random between 16 and 20
+                                sleep(sleepMinutes * 60 * 1000);
+
+                                driver.navigate().to("https://elem.mobi/urfin/");
+                                sleep(2000);
+                                continue;
+                            }
+                        }
+                    } catch (Exception ignored) {}
                 }
 
-                // Dynamic Sleep Strategy
-                if (actionPerformed) {
-                    consecutiveIdle = 0;
-                    long elapsed = System.currentTimeMillis() - loopStart;
-                    long remaining = 10000 - elapsed;
-
-                    if (remaining > 0) {
-                        sleep((int) remaining);
-                    }
-                } else {
-                    consecutiveIdle++;
-                    int sleepTimeMs;
-
-                    if (consecutiveIdle >= 2) {
-                        int minMs = 15 * 60 * 1000;
-                        int maxMs = 16 * 60 * 1000;
-                        sleepTimeMs = random.nextInt(maxMs - minMs + 1) + minMs;
-                    } else {
-                        int minMs = 5 * 60 * 1000;
-                        int maxMs = 6 * 60 * 1000;
-                        sleepTimeMs = random.nextInt(maxMs - minMs + 1) + minMs;
-                    }
-
-                    sleep(sleepTimeMs);
-                }
-
+                // Fallback page refresh cycle
+                sleep(2000);
                 driver.navigate().refresh();
             }
 
