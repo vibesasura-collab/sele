@@ -7,7 +7,15 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 350 # Kills cleanly slightly under the GitHub limit
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false # Prevents one failing bot from canceling the other
+      matrix:
+        account:
+          - id_key: GAME_ID
+            pass_key: GAME_PASSWORD
+          - id_key: GAME_ID2
+            pass_key: GAME_PASSWORD2
 
     steps:
       - name: Checkout repository
@@ -25,14 +33,8 @@ jobs:
           sudo apt update
           sudo apt install -y google-chrome-stable
 
-      - name: Run Bot 1 with Maven
+      - name: Run Bot with Maven
         env:
-          GAME_ID: ${{ secrets.GAME_ID }}
-          GAME_PASSWORD: ${{ secrets.GAME_PASSWORD }}
-        run: mvn compile exec:java -Dexec.mainClass=Main
-
-      - name: Run Bot 2 with Maven
-        env:
-          GAME_ID: ${{ secrets.GAME_ID2 }}
-          GAME_PASSWORD: ${{ secrets.GAME_PASSWORD2 }}
+          GAME_ID: ${{ secrets[matrix.account.id_key] }}
+          GAME_PASSWORD: ${{ secrets[matrix.account.pass_key] }}
         run: mvn compile exec:java -Dexec.mainClass=Main
