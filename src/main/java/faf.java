@@ -6,16 +6,56 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class faf {
 
-    public static void main(String[] args) {
+    // 5 Hours 30 Minutes maximum budget (330 minutes)
+    private static final long MAX_RUNTIME_MS = TimeUnit.MINUTES.toMillis(330);
+    private static final long SLEEP_INTERVAL_MS = TimeUnit.HOURS.toMillis(1);
 
+    public static void main(String[] args) {
         String user = System.getenv("USER_KEY");
         String pass = System.getenv("ACCESS_KEY");
 
         WebDriverManager.chromedriver().setup();
 
+        long startTime = System.currentTimeMillis();
+        int runCount = 1;
+
+        System.out.println("Starting 6-hour runner loop...");
+
+        while (true) {
+            long elapsedTime = System.currentTimeMillis() - startTime;
+
+            if (elapsedTime >= MAX_RUNTIME_MS) {
+                System.out.println("Reached 5 hours 30 minutes budget limit. Exiting cleanly.");
+                break;
+            }
+
+            System.out.println("\n=== Starting Execution Cycle #" + runCount + " ===");
+
+            // Execute bot cycle with fresh browser instance
+            runSingleBotCycle(user, pass);
+
+            long timeAfterTask = System.currentTimeMillis() - startTime;
+
+            // Stop before sleeping if 1-hour sleep exceeds the 5h 30m limit
+            if (timeAfterTask + SLEEP_INTERVAL_MS >= MAX_RUNTIME_MS) {
+                System.out.println("Execution #" + runCount + " complete. Next sleep would cross 5h 30m limit. Exiting runner.");
+                break;
+            }
+
+            System.out.println("Cycle #" + runCount + " completed. Sleeping for 1 hour...");
+            sleep(SLEEP_INTERVAL_MS);
+
+            runCount++;
+        }
+
+        System.out.println("All cycles completed successfully.");
+    }
+
+    private static void runSingleBotCycle(String user, String pass) {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless");
         options.addArguments("--no-sandbox");
@@ -25,7 +65,6 @@ public class faf {
         WebDriver driver = new ChromeDriver(options);
 
         try {
-
             login(driver, user, pass);
 
             // STEP 1: Free gems
@@ -44,8 +83,10 @@ public class faf {
             runOneFullCycle(driver);
 
         } catch (Exception e) {
+            System.err.println("Error during bot execution: " + e.getMessage());
             e.printStackTrace();
         } finally {
+            // Clean up browser driver each cycle to prevent memory leaks over 6 hours
             driver.quit();
         }
     }
@@ -64,12 +105,10 @@ public class faf {
 
     // 5 ATTACK LOOP + UPGRADE AFTER EACH ATTACK
     private static void runOneFullCycle(WebDriver driver) {
-
         driver.get("https://elem.cards/funnyfights/?autotune=on");
         sleep(3000);
 
         for (int i = 1; i <= 5; i++) {
-
             driver.get("https://elem.cards/funnyfights/enemy/" + i + "/");
             sleep(2500);
 
@@ -102,7 +141,6 @@ public class faf {
 
     // CHANGE PACK (ONLY ONCE)
     private static void clickChangePack(WebDriver driver) {
-
         driver.get("https://elem.cards/funnyfights/?autotune=on");
         sleep(3000);
 
