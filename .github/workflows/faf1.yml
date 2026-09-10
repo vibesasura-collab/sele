@@ -1,0 +1,72 @@
+name: faf 1
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_mode:
+        description: "Type RUN to start faf 1 bot"
+        required: true
+        default: "RUN"
+  schedule:
+    # Triggers every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: faf1-task-unit
+  cancel-in-progress: false
+
+jobs:
+  run-faf1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        include:
+          - id: 0
+            game_id_secret: GAME_ID_0
+            game_password_secret: GAME_PASSWORD_0
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Validate trigger source
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Mode: ${{ github.event.inputs.run_mode }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.run_mode }}" != "RUN" ]; then
+            echo "Not authorized run. Exiting."
+            exit 1
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget curl unzip gnupg
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Verify Chrome
+        run: google-chrome --version
+
+      - name: Build Project
+        run: mvn -B clean compile
+
+      - name: Run Bot (faf1)
+        env:
+          USER_KEY: ${{ secrets[matrix.game_id_secret] }}
+          ACCESS_KEY: ${{ secrets[matrix.game_password_secret] }}
+        run: mvn -B -q exec:java -Dexec.mainClass="faf1"
