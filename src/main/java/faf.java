@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 public class faf {
 
+    // 5 Hours 30 Minutes maximum budget (330 minutes)
     private static final long MAX_RUNTIME_MS = TimeUnit.MINUTES.toMillis(330);
     private static final long SLEEP_INTERVAL_MS = TimeUnit.HOURS.toMillis(1);
 
@@ -29,10 +30,12 @@ public class faf {
                 break;
             }
 
+            // Execute bot cycle with fresh browser instance
             runSingleBotCycle(user, pass);
 
             long timeAfterTask = System.currentTimeMillis() - startTime;
 
+            // Stop before sleeping if 1-hour sleep exceeds the 5h 30m limit
             if (timeAfterTask + SLEEP_INTERVAL_MS >= MAX_RUNTIME_MS) {
                 break;
             }
@@ -55,21 +58,29 @@ public class faf {
         try {
             login(driver, user, pass);
 
-            for (int batch = 1; batch <= 4; batch++) {
+            // Execute 2 batches of 6 enemy attacks each
+            for (int batch = 1; batch <= 2; batch++) {
+                // Check for free gems before starting batch attacks
                 collectFreeGemsIfAvailable(driver);
+
+                // Attack 6 enemies and upgrade after each attack
                 runOneFullCycle(driver);
 
-                if (batch < 4) {
+                // Change pack after completing the first batch
+                if (batch < 2) {
                     clickChangePack(driver);
                 }
             }
 
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            // Silent catch to prevent terminal noise
         } finally {
+            // Clean up browser driver each cycle to prevent memory leaks over 6 hours
             driver.quit();
         }
     }
 
+    // LOGIN
     private static void login(WebDriver driver, String user, String pass) {
         driver.get("https://elem.cards/login/");
         sleep(3000);
@@ -81,6 +92,7 @@ public class faf {
         sleep(5000);
     }
 
+    // 6 ATTACK LOOP + UPGRADE AFTER EACH ATTACK
     private static void runOneFullCycle(WebDriver driver) {
         driver.get("https://elem.cards/funnyfights/?autotune=on");
         sleep(3000);
@@ -98,6 +110,7 @@ public class faf {
                 sleep(4000);
             }
 
+            // UPGRADE AFTER EACH ATTACK
             try {
                 List<WebElement> upgradeBtns = driver.findElements(
                     By.xpath("//a[contains(@href,'/funnyfights/manage/upgrade/0/')]")
@@ -109,11 +122,13 @@ public class faf {
                 }
             } catch (Exception ignored) {}
 
+            // BACK TO AUTOTUNE FOR NEXT ATTACK
             driver.get("https://elem.cards/funnyfights/?autotune=on");
             sleep(2000);
         }
     }
 
+    // CHANGE PACK
     private static void clickChangePack(WebDriver driver) {
         driver.get("https://elem.cards/funnyfights/?autotune=on");
         sleep(3000);
@@ -133,6 +148,7 @@ public class faf {
         }
     }
 
+    // FREE GEMS
     private static void collectFreeGemsIfAvailable(WebDriver driver) {
         try {
             driver.get("https://elem.cards/funnyfights/");
