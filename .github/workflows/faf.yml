@@ -1,13 +1,14 @@
 name: faf
 
 on:
+  schedule:
+    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       run_mode:
         description: "Type RUN to start faf bot"
         required: true
         default: "RUN"
-
 
 permissions:
   contents: read
