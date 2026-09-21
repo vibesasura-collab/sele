@@ -7,7 +7,7 @@ on:
         description: "Type RUN to start faf 1 bot"
         required: true
         default: "RUN"
-  schedule:
+
 
 
 permissions:
