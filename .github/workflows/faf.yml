@@ -1,7 +1,7 @@
 name: faf
 
 on:
-  schedule:
+
   workflow_dispatch:
     inputs:
       run_mode:
