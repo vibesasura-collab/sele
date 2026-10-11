@@ -14,8 +14,6 @@ jobs:
         account:
           - id_key: GAME_ID
             pass_key: GAME_PASSWORD
-          - id_key: GAME_ID2
-            pass_key: GAME_PASSWORD2
 
     steps:
       - name: Checkout repository
