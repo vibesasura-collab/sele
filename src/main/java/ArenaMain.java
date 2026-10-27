@@ -56,14 +56,14 @@ public class ArenaMain {
 
                 boolean attacked = attackCards(driver);
 
-                // If attacked successfully, refresh and keep checking/attacking
+                // If attacked successfully, refresh and keep attacking
                 if (attacked) {
                     driver.navigate().refresh();
                     sleepRandom(3000, 5000);
                     continue;
                 }
 
-                // When no attacks left after 5 checks, check Daily Quests status
+                // When no attacks left, check Daily Quests status
                 System.out.println("Match completed or no attacks left. Checking Daily Quests...");
                 
                 if (checkDailyQuestsDone(driver)) {
@@ -114,6 +114,7 @@ public class ArenaMain {
 
     private static boolean checkDailyQuestsDone(WebDriver driver) {
         try {
+            // Navigate directly or click Daily Quests link
             List<WebElement> dailyLinks = driver.findElements(By.xpath("//a[contains(@href, '/daily/')]"));
             if (!dailyLinks.isEmpty()) {
                 click(driver, dailyLinks.get(0));
@@ -123,13 +124,16 @@ public class ArenaMain {
 
             sleepRandom(3000, 5000);
 
+            // Locate reward buttons matching the specific daily reward URIs
             List<WebElement> rewardButtons = driver.findElements(By.xpath(
                 "//a[contains(@href, '/daily/reward/arenas/') or contains(@href, '/daily/reward/win_arenas/')]"
             ));
 
             int rewardCount = rewardButtons.size();
+
             System.out.println("Arena 'Receive Reward' buttons found: " + rewardCount + "/2");
 
+            // Stop loop when both reward links are visible/present
             return rewardCount >= 2;
 
         } catch (Exception e) {
@@ -141,17 +145,20 @@ public class ArenaMain {
     // ---------------- LOGIN ----------------
 
     private static void login(WebDriver driver, String user, String pass) {
+
         driver.get("https://elem.cards/login/");
 
         driver.findElement(By.name("plogin")).sendKeys(user);
         driver.findElement(By.name("ppass")).sendKeys(pass);
+
         driver.findElement(By.cssSelector("input[type='submit']")).click();
 
         sleep(4000);
 
         try {
             driver.findElement(By.cssSelector("a.urfin")).click();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         sleep(3000);
     }
@@ -159,6 +166,7 @@ public class ArenaMain {
     // ---------------- CLICK ENTER ----------------
 
     private static boolean clickEnter(WebDriver driver) {
+
         try {
             List<WebElement> enterBtn = driver.findElements(
                     By.xpath("//span[text()='Enter']/ancestor::a")
@@ -169,13 +177,17 @@ public class ArenaMain {
                 System.out.println("Clicked Enter");
                 return true;
             }
-        } catch (Exception ignored) {}
+
+        } catch (Exception ignored) {
+        }
+
         return false;
     }
 
     // ---------------- CLICK ENTER AGAIN ----------------
 
     private static boolean clickEnterAgain(WebDriver driver) {
+
         try {
             List<WebElement> btns = driver.findElements(
                     By.xpath("//span[contains(text(),'Enter again')]/ancestor::a")
@@ -187,109 +199,83 @@ public class ArenaMain {
                 sleepRandom(2000, 4000);
                 return true;
             }
-        } catch (Exception ignored) {}
-        return false;
-    }
 
-    // ---------------- ATTACK LOOP WITH 5 CHECK RETRIES ----------------
-
-    private static boolean attackCards(WebDriver driver) {
-        boolean attackedAny = false;
-        int emptyChecks = 0;
-        final int maxEmptyChecks = 5;
-
-        while (true) {
-            boolean actionTaken = false;
-
-            // 1. Try highest priority multipliers first
-            if (clickMultiplierCard(driver, "1.6")) actionTaken = true;
-            else if (clickMultiplierCard(driver, "1.5")) actionTaken = true;
-            else if (clickMultiplierCard(driver, "1.1")) actionTaken = true;
-            else if (clickMultiplierCard(driver, " 1 ", "x1")) actionTaken = true;
-            else if (clickMultiplierCard(driver, "0.6")) actionTaken = true;
-            else if (clickMultiplierCard(driver, "0.5")) actionTaken = true;
-
-            // 2. If none found, try target switch (/chtarget/)
-            if (!actionTaken) {
-                boolean switched = clickIfPresent(driver, "a[href*='/chtarget/']");
-                if (switched) {
-                    sleepRandom(400, 600);
-                    if (clickMultiplierCard(driver, "1.6")) actionTaken = true;
-                    else if (clickMultiplierCard(driver, "1.5")) actionTaken = true;
-                    else if (clickMultiplierCard(driver, "1.1")) actionTaken = true;
-                    else if (clickMultiplierCard(driver, " 1 ", "x1")) actionTaken = true;
-                    else if (clickMultiplierCard(driver, "0.6")) actionTaken = true;
-                    else if (clickMultiplierCard(driver, "0.5")) actionTaken = true;
-                }
-            }
-
-            if (actionTaken) {
-                attackedAny = true;
-                emptyChecks = 0; // Reset counter when a successful click happens
-                sleepRandom(300, 600); 
-            } else {
-                emptyChecks++;
-                if (emptyChecks >= maxEmptyChecks) {
-                    System.out.println("No more attack cards found after 5 consecutive checks. Quitting attack loop.");
-                    break; // Quit after 5 checks fail
-                }
-                System.out.println("No attack found (Check " + emptyChecks + "/" + maxEmptyChecks + "). Re-checking in 2-3 sec...");
-                sleepRandom(2000, 3000);
-            }
+        } catch (Exception ignored) {
         }
 
-        return attackedAny;
+        return false;
     }
 
-    // Helper to click cards matching specific multipliers
-    private static boolean clickMultiplierCard(WebDriver driver, String... terms) {
+    // ---------------- ATTACK ALL CARDS ----------------
+
+    private static boolean attackCards(WebDriver driver) {
+
+        boolean attacked = false;
+
+        while (true) {
+
+            boolean found = false;
+
+            found |= clickAll(driver, "attack0");
+            sleepRandom(200, 500);
+
+            found |= clickAll(driver, "attack1");
+            sleepRandom(200, 500);
+
+            found |= clickAll(driver, "attack2");
+            sleepRandom(200, 500);
+
+            if (!found) {
+                break;
+            }
+
+            attacked = true;
+            sleepRandom(500, 1000);
+        }
+
+        return attacked;
+    }
+
+    // ---------------- CLICK ALL ----------------
+
+    private static boolean clickAll(WebDriver driver, String attackType) {
+
+        boolean clicked = false;
+
         try {
-            List<WebElement> cards = driver.findElements(By.xpath("//a[@class='card']"));
+
+            List<WebElement> cards = driver.findElements(
+                    By.xpath("//a[@class='card']")
+            );
+
             for (WebElement card : cards) {
-                String text = card.getText();
+
                 String href = card.getAttribute("href");
 
-                if (href != null && href.contains("/attack")) {
-                    for (String term : terms) {
-                        if (text.contains(term) || href.contains(term)) {
-                            click(driver, card);
-                            System.out.println("Clicked attack card with multiplier: " + term);
-                            return true;
-                        }
-                    }
+                if (href == null) {
+                    continue;
+                }
+
+                if (href.contains(attackType)) {
+
+                    click(driver, card);
+                    System.out.println("Clicked " + attackType);
+
+                    clicked = true;
+                    sleepRandom(300, 700);
                 }
             }
 
-            // Fallback XPath search across the page
-            for (String term : terms) {
-                String xpath = "//a[contains(@href, '/attack') and (contains(., '" + term + "') or ancestor::*[contains(text(), '" + term + "')])]";
-                List<WebElement> targetLinks = driver.findElements(By.xpath(xpath));
-                if (!targetLinks.isEmpty()) {
-                    click(driver, targetLinks.get(0));
-                    System.out.println("Clicked attack link via XPath with multiplier: " + term);
-                    return true;
-                }
-            }
-        } catch (Exception ignored) {}
-        return false;
-    }
+        } catch (Exception ignored) {
+        }
 
-    // Helper to click target switch link if present
-    private static boolean clickIfPresent(WebDriver driver, String css) {
-        try {
-            List<WebElement> elements = driver.findElements(By.cssSelector(css));
-            if (!elements.isEmpty()) {
-                click(driver, elements.get(0));
-                System.out.println("Triggered target switch (/chtarget/) ✔");
-                return true;
-            }
-        } catch (Exception ignored) {}
-        return false;
+        return clicked;
     }
 
     // ---------------- CLICK ----------------
 
     private static void click(WebDriver driver, WebElement el) {
+
         try {
             el.click();
         } catch (Exception e) {
@@ -310,6 +296,7 @@ public class ArenaMain {
     private static void sleep(int ms) {
         try {
             Thread.sleep(ms);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 }
