@@ -70,16 +70,7 @@ public class faf1 {
             // STEP 1: Free gems
             collectFreeGemsIfAvailable(driver);
 
-            // STEP 2: FIRST 5 ATTACKS
-            runOneFullCycle(driver);
-
-            // STEP 3: CHANGE PACK (ONLY ONCE)
-            clickChangePack(driver);
-
-            // STEP 4: FREE GEMS AGAIN
-            collectFreeGemsIfAvailable(driver);
-
-            // STEP 5: SECOND 5 ATTACKS
+            // STEP 2: SINGLE BATCH OF 5 ATTACKS
             runOneFullCycle(driver);
 
         } catch (Exception e) {
@@ -137,26 +128,6 @@ public class faf1 {
             // BACK TO AUTOTUNE FOR NEXT ATTACK
             driver.get("https://elem.mobi/funnyfights/?autotune=on");
             sleep(2000);
-        }
-    }
-
-    // CHANGE PACK (ONLY ONCE)
-    private static void clickChangePack(WebDriver driver) {
-        driver.get("https://elem.mobi/funnyfights/?autotune=on");
-        sleep(3000);
-
-        List<WebElement> btn = driver.findElements(
-            By.xpath("//a[contains(@href,'/funnyfights/nextpack/')]")
-        );
-
-        if (!btn.isEmpty()) {
-            try {
-                btn.get(0).click();
-            } catch (Exception e) {
-                ((org.openqa.selenium.JavascriptExecutor) driver)
-                        .executeScript("arguments[0].click();", btn.get(0));
-            }
-            sleep(4000);
         }
     }
 
