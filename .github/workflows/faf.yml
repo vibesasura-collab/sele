@@ -1,7 +1,8 @@
 name: faf
 
 on:
-
+  schedule:
+    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       run_mode:
