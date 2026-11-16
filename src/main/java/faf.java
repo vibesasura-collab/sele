@@ -58,19 +58,11 @@ public class faf {
         try {
             login(driver, user, pass);
 
-            // Execute 2 batches of 6 enemy attacks each
-            for (int batch = 1; batch <= 2; batch++) {
-                // Check for free gems before starting batch attacks
-                collectFreeGemsIfAvailable(driver);
+            // Check for free gems before starting attacks
+            collectFreeGemsIfAvailable(driver);
 
-                // Attack 6 enemies and upgrade after each attack
-                runOneFullCycle(driver);
-
-                // Change pack after completing the first batch
-                if (batch < 2) {
-                    clickChangePack(driver);
-                }
-            }
+            // Execute 1 single batch of 6 enemy attacks and upgrades
+            runOneFullCycle(driver);
 
         } catch (Exception e) {
             // Silent catch to prevent terminal noise
@@ -97,7 +89,7 @@ public class faf {
         driver.get("https://elem.cards/funnyfights/?autotune=on");
         sleep(3000);
 
-        for (int i = 1; i <= 6; i++) {
+        for (int i = 1; i <= 5; i++) {
             driver.get("https://elem.cards/funnyfights/enemy/" + i + "/");
             sleep(2500);
 
@@ -125,26 +117,6 @@ public class faf {
             // BACK TO AUTOTUNE FOR NEXT ATTACK
             driver.get("https://elem.cards/funnyfights/?autotune=on");
             sleep(2000);
-        }
-    }
-
-    // CHANGE PACK
-    private static void clickChangePack(WebDriver driver) {
-        driver.get("https://elem.cards/funnyfights/?autotune=on");
-        sleep(3000);
-
-        List<WebElement> btn = driver.findElements(
-            By.xpath("//a[contains(@href,'/funnyfights/nextpack/')]")
-        );
-
-        if (!btn.isEmpty()) {
-            try {
-                btn.get(0).click();
-            } catch (Exception e) {
-                ((org.openqa.selenium.JavascriptExecutor) driver)
-                        .executeScript("arguments[0].click();", btn.get(0));
-            }
-            sleep(4000);
         }
     }
 
